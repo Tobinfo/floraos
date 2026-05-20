@@ -223,6 +223,24 @@ Save an optional ID-only crop photo that does not create garden care tracking.
 
 Return user plants, photos, ID-only gallery, care logs, weather snapshots, and recognition events for mobile sync.
 
+## Local Export Shape
+
+Until hosted accounts exist, the browser Data panel can export local records in this shape:
+
+```json
+{
+  "schemaVersion": 1,
+  "exportedAt": "2026-05-20T22:00:00.000Z",
+  "storage": "browser-local",
+  "plants": [],
+  "idOnlyGallery": [],
+  "photoTrainingConsent": "yes",
+  "weatherZip": "55025"
+}
+```
+
+This is not a server endpoint. It documents the local export payload so the later hosted import/sync path has a stable source shape.
+
 ## Client Data Models
 
 ### GardenPlant

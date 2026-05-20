@@ -51,6 +51,7 @@ const weatherForm = document.querySelector("#weather-form");
 const weatherZipInput = document.querySelector("#weather-zip");
 const weatherPill = document.querySelector("#weather-pill");
 const gardenSummary = document.querySelector("#garden-summary");
+const dataSettingsOpenButton = document.querySelector("#data-settings-open");
 const photoConsentDialog = document.querySelector("#photo-consent");
 const photoConsentZipInput = document.querySelector("#photo-consent-zip");
 const photoConsentYesButton = document.querySelector("#photo-consent-yes");
@@ -93,13 +94,15 @@ const photoLibraryDialog = document.querySelector("#photo-library");
 const photoLibraryTitle = document.querySelector("#photo-library-title");
 const photoLibraryCloseButton = document.querySelector("#photo-library-close");
 const photoGrid = document.querySelector("#photo-grid");
+const dataSettingsDialog = document.querySelector("#data-settings");
+const dataSettingsCloseButton = document.querySelector("#data-settings-close");
+const photoUseStatus = document.querySelector("#photo-use-status");
+const photoUseAllowButton = document.querySelector("#photo-use-allow");
+const photoUseDisableButton = document.querySelector("#photo-use-disable");
+const dataExportButton = document.querySelector("#data-export");
+const dataDeleteButton = document.querySelector("#data-delete");
 
-const storageKey = "gardensnap.prototype.plants";
-const idOnlyGalleryKey = "gardenin.prototype.idOnlyGallery";
-const photoConsentKey = "gardenin.photoTrainingConsent";
-const legacyPhotoConsentKey = "floraos.photoTrainingConsent";
-const weatherZipKey = "gardenin.weather.zip";
-const legacyWeatherZipKey = "floraos.weather.zip";
+const repository = window.GardeninStorageRepository.createRepository();
 let stream = null;
 let activeCandidate = null;
 let activeCandidates = [];
@@ -223,6 +226,7 @@ quickSpeciesInput.addEventListener("change", updateQuickAddSpecies);
 savePlantButton.addEventListener("click", savePlant);
 cancelReviewButton.addEventListener("click", closeReview);
 weatherForm.addEventListener("submit", handleWeatherSubmit);
+dataSettingsOpenButton.addEventListener("click", openDataSettings);
 photoConsentYesButton.addEventListener("click", () => setPhotoTrainingConsent(true));
 photoConsentNoButton.addEventListener("click", () => setPhotoTrainingConsent(false));
 trainingRequestYesButton.addEventListener("click", startTrainingPhotoFlow);
@@ -238,9 +242,19 @@ idOnlyCancelButton.addEventListener("click", closeIdOnlyCapture);
 idOnlyGalleryCloseButton.addEventListener("click", closeIdOnlyGallery);
 idOnlyLocationOnceButton.addEventListener("click", requestIdOnlyLocationOnce);
 photoLibraryCloseButton.addEventListener("click", closePhotoLibrary);
+dataSettingsCloseButton.addEventListener("click", closeDataSettings);
+photoUseAllowButton.addEventListener("click", () => updatePhotoTrainingConsentFromSettings(true));
+photoUseDisableButton.addEventListener("click", () => updatePhotoTrainingConsentFromSettings(false));
+dataExportButton.addEventListener("click", exportLocalData);
+dataDeleteButton.addEventListener("click", deleteLocalData);
 photoLibraryDialog.addEventListener("click", (event) => {
   if (event.target === photoLibraryDialog) {
     closePhotoLibrary();
+  }
+});
+dataSettingsDialog.addEventListener("click", (event) => {
+  if (event.target === dataSettingsDialog) {
+    closeDataSettings();
   }
 });
 idOnlyGalleryDialog.addEventListener("click", (event) => {
@@ -729,6 +743,10 @@ async function featureForPhoto(photoUrl) {
 }
 
 function photoDataUrlsForPlant(plant) {
+  if (plant.photoUse?.personalRecognition !== true) {
+    return [];
+  }
+
   const urls = [];
   if (plant.trainingSample?.cropImageDataUrl) {
     urls.push(plant.trainingSample.cropImageDataUrl);
@@ -867,8 +885,9 @@ function maybeShowPhotoConsent() {
 
 async function setPhotoTrainingConsent(isAllowed) {
   photoTrainingConsent = isAllowed ? "yes" : "no";
-  localStorage.setItem(photoConsentKey, photoTrainingConsent);
+  repository.savePhotoTrainingConsent(photoTrainingConsent);
   photoConsentDialog.hidden = true;
+  renderDataSettings();
   const zip = photoConsentZipInput.value.trim();
   if (/^\d{5}$/.test(zip)) {
     weatherZipInput.value = zip;
@@ -877,11 +896,7 @@ async function setPhotoTrainingConsent(isAllowed) {
 }
 
 function loadPhotoTrainingConsent() {
-  const stored = localStorage.getItem(photoConsentKey) || localStorage.getItem(legacyPhotoConsentKey);
-  if (stored === "yes" || stored === "no") {
-    localStorage.setItem(photoConsentKey, stored);
-    localStorage.removeItem(legacyPhotoConsentKey);
-  }
+  const stored = repository.loadPhotoTrainingConsent();
   return stored === "yes" || stored === "no" ? stored : null;
 }
 
@@ -891,14 +906,12 @@ async function handleWeatherSubmit(event) {
 }
 
 async function loadStoredWeather() {
-  const storedZip = localStorage.getItem(weatherZipKey) || localStorage.getItem(legacyWeatherZipKey);
+  const storedZip = repository.loadWeatherZip();
   if (!storedZip) {
     renderWeather();
     return;
   }
 
-  localStorage.setItem(weatherZipKey, storedZip);
-  localStorage.removeItem(legacyWeatherZipKey);
   weatherZipInput.value = storedZip;
   await loadWeatherForZip(storedZip);
 }
@@ -935,7 +948,7 @@ async function loadWeatherForZip(zipInput) {
         condition: forecast[0].condition
       }
     };
-    localStorage.setItem(weatherZipKey, result.zip);
+    repository.saveWeatherZip(result.zip);
     renderWeather();
     renderPlants();
   } catch (error) {
@@ -1959,6 +1972,95 @@ function closePhotoLibrary() {
   photoGrid.replaceChildren();
 }
 
+function openDataSettings() {
+  renderDataSettings();
+  dataSettingsDialog.hidden = false;
+}
+
+function closeDataSettings() {
+  dataSettingsDialog.hidden = true;
+}
+
+function renderDataSettings() {
+  const photoCount = plants.reduce((count, plant) => count + photosForPlant(plant).length, 0);
+  const galleryCount = idOnlyGallery.length;
+  const consentText = photoTrainingConsent === "yes"
+    ? "Allowed for personal recognition. New confirmed plant crops can improve recognition for you."
+    : photoTrainingConsent === "no"
+      ? "Off for recognition. Existing saved photos remain visible until deleted."
+      : "Not set yet.";
+  photoUseStatus.textContent = `${consentText} Local records: ${plants.length} plant(s), ${photoCount} plant photo(s), ${galleryCount} ID-only photo(s).`;
+  photoUseAllowButton.disabled = photoTrainingConsent === "yes";
+  photoUseDisableButton.disabled = photoTrainingConsent === "no";
+}
+
+function updatePhotoTrainingConsentFromSettings(isAllowed) {
+  photoTrainingConsent = isAllowed ? "yes" : "no";
+  repository.savePhotoTrainingConsent(photoTrainingConsent);
+  for (const plant of plants) {
+    plant.photoUse = {
+      ...(plant.photoUse || {}),
+      personalRecognition: photoTrainingConsent === "yes",
+      fullFrameStored: false
+    };
+  }
+  savePlants();
+  renderPlants();
+  renderDataSettings();
+}
+
+function exportLocalData() {
+  const payload = repository.exportLocalData({
+    plants,
+    idOnlyGallery,
+    photoTrainingConsent,
+    weatherZip: weatherZipInput.value.trim() || repository.loadWeatherZip()
+  });
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {
+    type: "application/json"
+  });
+  const link = document.createElement("a");
+  const date = new Date().toISOString().slice(0, 10);
+  link.href = URL.createObjectURL(blob);
+  link.download = `gardenin-local-data-${date}.json`;
+  document.body.append(link);
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  link.remove();
+}
+
+function deleteLocalData() {
+  const shouldDelete = window.confirm("Delete local gardenin plants, crop photos, ID-only gallery, consent, and ZIP weather setting from this browser?");
+  if (!shouldDelete) {
+    return;
+  }
+
+  repository.clearAllLocalData();
+  plants = [];
+  idOnlyGallery = [];
+  photoTrainingConsent = null;
+  forecast = buildDemoForecast();
+  weatherSnapshot = {
+    source: "demo",
+    place: "Demo forecast",
+    zip: null,
+    current: {
+      temperatureF: forecast[0].highFahrenheit,
+      condition: forecast[0].condition
+    }
+  };
+  weatherZipInput.value = "";
+  photoConsentZipInput.value = "";
+  closeReview();
+  closePhotoLibrary();
+  closeIdOnlyGallery();
+  closeDataSettings();
+  renderWeather();
+  renderPlants();
+  renderDataSettings();
+  maybeShowPhotoConsent();
+}
+
 function photosForPlant(plant) {
   const photos = [];
 
@@ -2508,34 +2610,26 @@ function startOfDay(date) {
 }
 
 function loadPlants() {
-  try {
-    const storedPlants = JSON.parse(localStorage.getItem(storageKey)) || [];
-    const sanitizedPlants = storedPlants.map(sanitizePlantRecord);
-    if (JSON.stringify(storedPlants) !== JSON.stringify(sanitizedPlants)) {
-      localStorage.setItem(storageKey, JSON.stringify(sanitizedPlants));
-    }
-    return sanitizedPlants;
-  } catch {
-    return [];
+  const storedPlants = repository.loadPlants();
+  const sanitizedPlants = storedPlants.map(sanitizePlantRecord);
+  if (JSON.stringify(storedPlants) !== JSON.stringify(sanitizedPlants)) {
+    repository.savePlants(sanitizedPlants);
   }
+  return sanitizedPlants;
 }
 
 function savePlants() {
   plants = plants.map(sanitizePlantRecord);
-  localStorage.setItem(storageKey, JSON.stringify(plants));
+  repository.savePlants(plants);
 }
 
 function loadIdOnlyGallery() {
-  try {
-    return (JSON.parse(localStorage.getItem(idOnlyGalleryKey)) || []).map(sanitizeIdOnlyGalleryPhoto);
-  } catch {
-    return [];
-  }
+  return repository.loadIdOnlyGallery().map(sanitizeIdOnlyGalleryPhoto);
 }
 
 function saveIdOnlyGallery() {
   idOnlyGallery = idOnlyGallery.map(sanitizeIdOnlyGalleryPhoto);
-  localStorage.setItem(idOnlyGalleryKey, JSON.stringify(idOnlyGallery));
+  repository.saveIdOnlyGallery(idOnlyGallery);
 }
 
 function sanitizeIdOnlyGalleryPhoto(photo) {
@@ -2611,6 +2705,10 @@ function sanitizePlantRecord(plant) {
     })),
     photoUse: {
       ...(plant.photoUse || {}),
+      personalRecognition: Boolean(
+        plant.photoUse?.personalRecognition ||
+        trainingSample?.consentForPersonalRecognition
+      ),
       fullFrameStored: false
     }
   };

@@ -165,3 +165,11 @@ Decision: Garden Scan, saved-plant recognition, Quick add/manual entry, and ID-o
 Reason: Blending these modes makes Pl@ntNet guesses look like gardenin recognition, makes ID-only feel like garden tracking, and allows care guidance without a supporting photo.
 
 Implementation note: Saved-plant flash recognition should only come from the user's local crop-photo repository. Garden Scan and ID-only both use three crop photos and submit only the strongest crop. Quick add now requires a current camera crop before saving care guidance.
+
+## 2026-05-20: Browser Storage Repository Boundary
+
+Decision: Browser persistence should go through a repository module instead of direct UI-level `localStorage` calls.
+
+Reason: The app needs a clear place to swap browser-local storage for hosted database/object storage later without rewriting scan, recognition, gallery, and care UI code.
+
+Implementation note: `prototype/storage-repository.js` owns browser-local keys, legacy key migration, export payload shape, and delete-all-local-data behavior. The Data panel exposes photo-recognition consent, export, and local delete controls.

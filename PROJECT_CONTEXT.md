@@ -50,6 +50,7 @@ Important areas:
 - Care logic: `GardenSnap/Services/CareRecommendationEngine.swift`
 - Main app views: `GardenSnap/Views/`
 - Browser prototype: `prototype/index.html`, `prototype/app.js`, `prototype/styles.css`
+- Browser storage boundary: `prototype/storage-repository.js`
 - Laptop plant ID connector: `scripts/plant-id-provider.js`
 
 ## Current Direction

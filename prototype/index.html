@@ -88,6 +88,7 @@
               <button class="ghost-button compact-button" type="submit">Weather</button>
             </form>
             <div class="weather-pill" id="weather-pill">Weather loading</div>
+            <button class="ghost-button compact-button" id="data-settings-open" type="button">Data</button>
           </div>
         </header>
 
@@ -314,6 +315,41 @@
       </div>
     </section>
 
+    <section class="consent-dialog" id="data-settings" role="dialog" aria-modal="true" aria-labelledby="data-settings-title" hidden>
+      <div class="data-settings-panel">
+        <div class="photo-library-header">
+          <div>
+            <p class="eyebrow">Data settings</p>
+            <h2 id="data-settings-title">Local gardenin data</h2>
+          </div>
+          <button class="ghost-button compact-button" id="data-settings-close" type="button">Close</button>
+        </div>
+
+        <div class="data-setting-row">
+          <div>
+            <strong>Photo recognition</strong>
+            <p id="photo-use-status">Checking photo use setting.</p>
+          </div>
+          <div class="photo-actions">
+            <button type="button" id="photo-use-allow">Allow</button>
+            <button type="button" id="photo-use-disable">Turn off</button>
+          </div>
+        </div>
+
+        <div class="data-setting-row">
+          <div>
+            <strong>Export or delete</strong>
+            <p>Exports include local plant records, crop photos, ID-only gallery items, ZIP weather setting, and consent setting.</p>
+          </div>
+          <div class="photo-actions">
+            <button type="button" id="data-export">Export</button>
+            <button type="button" id="data-delete">Delete local data</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script src="./storage-repository.js"></script>
     <script src="./photo-recognition.js"></script>
     <script src="./app.js"></script>
   </body>

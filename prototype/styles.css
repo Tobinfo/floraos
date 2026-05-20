@@ -598,6 +598,42 @@ h3 {
   box-shadow: 0 22px 70px rgba(21, 25, 20, 0.32);
 }
 
+.data-settings-panel {
+  display: grid;
+  gap: 16px;
+  width: min(760px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: 0 22px 70px rgba(21, 25, 20, 0.32);
+}
+
+.data-setting-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.45fr);
+  gap: 14px;
+  align-items: start;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.data-setting-row strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.data-setting-row p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.42;
+}
+
 .photo-library-header {
   display: flex;
   align-items: flex-start;
@@ -886,7 +922,8 @@ select {
   }
 
   .field-grid,
-  .care-buttons {
+  .care-buttons,
+  .data-setting-row {
     grid-template-columns: 1fr;
   }
 

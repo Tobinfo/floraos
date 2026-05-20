@@ -42,3 +42,5 @@ Suggested tables:
 Add hosted storage only after the browser workflow is stable enough to preserve. The first hosted version should save plant records, crop photos, and recognition events. It does not need a trained model on day one.
 
 Before choosing the database/provider, keep the server API aligned with `docs/API_CONTRACT.md` so web, Android, and iOS can share the same records when hosted persistence is added.
+
+The browser now has a local repository boundary in `prototype/storage-repository.js`. Hosted persistence should replace or extend that repository boundary first, not spread database calls through UI code.

@@ -57,6 +57,7 @@
 - `docs/API_CONTRACT.md` now defines the shared web/server/mobile data contract. The server exposes the current contract version and summary at `/api/mobile-contract`.
 - Product/pricing ideas are tracked in `docs/IDEAS.md`.
 - Mode-boundary fixes are underway: provider species matches no longer auto-trigger saved-plant recognition, ID-only now has an explicit app mode, Quick add requires a current photo crop, and normal Garden Scan now captures three photos and sends only the strongest crop for ID.
+- Browser storage now goes through `prototype/storage-repository.js` instead of direct app-level `localStorage` calls. The app also has a Data panel for changing photo-recognition consent, exporting local data, and deleting local browser data.
 - No-subscription water probe direction: support Wi-Fi gateways such as Ecowitt WH51 with GW1100/GW2000, Bluetooth plant sensors such as Mi Flora/Flower Care for pots, and later ESP32 DIY probes for custom beds.
 - If this chat context closes, reopen `C:\dev\plant watering` and ask Codex to read `PROJECT_CONTEXT.md`, `docs/NEXT_STEPS.md`, and `docs/DECISIONS.md`.
 
@@ -80,11 +81,10 @@
 5. Connect weather with location permission and Open-Meteo/NWS-style current conditions.
 6. Add a water-need model that can consume manual watering logs, weather, recent pruning, plant type, and probe readings.
 7. Manually verify the new mode-boundary flow in the browser with a real camera: Garden Scan should collect three crops, ID only should stay visually separate, and Quick add should require a current photo.
-8. Add a user setting to change photo-training consent after first choice.
-9. Add a real hosted database/object store so crop images and training photos survive across devices and browser resets.
-10. Replace the first local color/texture matcher with stronger embeddings or a real model once enough labeled crop photos exist.
-11. Add hosted persistence for plant records, crop photos, care logs, weather snapshots, and recognition events.
-12. Use Perenual plant details to enrich saved plant care profiles after ID/manual confirmation.
-13. Add a full user-visible data settings screen for consent, export, and account deletion.
-14. Choose the hosted database/object storage provider and implement the first persistence endpoints from `docs/API_CONTRACT.md`.
-15. Start the first native mobile proof once the server API and hosted storage boundary are stable enough.
+8. Add a real hosted database/object store so crop images and training photos survive across devices and browser resets.
+9. Replace the first local color/texture matcher with stronger embeddings or a real model once enough labeled crop photos exist.
+10. Add hosted persistence for plant records, crop photos, care logs, weather snapshots, and recognition events.
+11. Use Perenual plant details to enrich saved plant care profiles after ID/manual confirmation.
+12. Expand the Data panel into an account-grade data settings screen once hosted users exist.
+13. Choose the hosted database/object storage provider and implement the first persistence endpoints from `docs/API_CONTRACT.md`.
+14. Start the first native mobile proof once the server API and hosted storage boundary are stable enough.
