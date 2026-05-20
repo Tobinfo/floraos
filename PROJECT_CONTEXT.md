@@ -1,6 +1,6 @@
 # GardenSnap Project Context
 
-GardenSnap is a laptop-first prototype for plant identification and care tracking, with an iOS SwiftUI scaffold kept as the later native target.
+floraos is a laptop-first prototype for plant identification and care tracking, with an iOS SwiftUI scaffold kept as the later native target.
 
 The core workflow is:
 
@@ -19,18 +19,21 @@ The repo contains:
 - A SwiftUI iOS app in `GardenSnap/`; this should follow the proven laptop workflow later.
 - Unit tests in `GardenSnapTests/`.
 - A local Node static server in `scripts/serve-prototype.js`.
-- A local plant identification provider boundary in `scripts/plant-id-provider.js`.
+- A plant identification provider boundary in `scripts/plant-id-provider.js`.
+- A Render-hosted web service connected to `https://github.com/Tobinfo/floraos`.
 - XcodeGen configuration in `project.yml`.
 
 ## Current Constraints
 
 - `C:\dev\plant watering` is the project source of truth.
 - Ignore OneDrive for this project.
-- The plant identification service is currently deterministic demo logic.
+- Real plant identification should run through Pl@ntNet when `PLANT_ID_PROVIDER=plantnet` and `PLANTNET_API_KEY` are available.
+- Demo identification exists only as a test/fallback path and must not be confused with production scan behavior.
 - Weather is currently demo forecast data.
-- Plant data is stored locally.
+- Plant data is currently stored in browser local storage. A real hosted database is needed before the app can reliably collect long-term user photos, corrections, weather context, and care habits.
 - The browser prototype is the source of truth for current product behavior.
 - The iOS app should avoid racing ahead until the laptop workflow stabilizes.
+- The hosted Render URL is `https://floraos.onrender.com`.
 
 ## Architecture Notes
 
@@ -52,4 +55,6 @@ Keep building around the laptop garden-walk loop first:
 
 scan -> confirm -> name -> save -> care recommendation -> log care.
 
-Real identification and real weather should be connected to the laptop prototype first, then ported to iOS after the workflow feels solid. The browser should call local endpoints, and local server code should handle any provider keys or provider-specific response shapes.
+Real identification and real weather should be connected to the laptop prototype first, then ported to iOS after the workflow feels solid. The browser should call server endpoints, and server code should handle provider keys or provider-specific response shapes.
+
+If a Codex context window closes or compacts, resume by reading this file, `docs/NEXT_STEPS.md`, and `docs/DECISIONS.md` before making changes.

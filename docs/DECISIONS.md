@@ -37,3 +37,21 @@ Reason: Real plant ID providers may require API keys and response normalization.
 Decision: Scan mode should keep the camera live for walking around a garden. Add Plant should be the freeze-frame moment for reviewing, correcting, and saving.
 
 Reason: Walking identification and plant record creation are different jobs. Freezing every scan makes garden walk mode feel broken.
+
+## 2026-05-20: Hosted App Target
+
+Decision: Use the Render-hosted app at `https://floraos.onrender.com` as the normal user-facing URL while continuing to use the local prototype for fast development.
+
+Reason: The user does not want terminal-driven local startup as the normal experience. Hosting also makes it easier to connect real provider secrets through environment variables.
+
+## 2026-05-20: Real ID Must Be Visible
+
+Decision: The primary Scan path should use Pl@ntNet when configured, and demo IDs should stay clearly separated as demo/test behavior.
+
+Reason: Fake IDs in the main scan flow destroy trust. The UI and server status should make the active provider obvious.
+
+## 2026-05-20: Probe Direction
+
+Decision: Favor no-subscription water probe options first: Wi-Fi gateway probes, Bluetooth plant sensors, and later a simple custom endpoint for ESP32-style DIY probes.
+
+Reason: The user wants water-need inputs without committing to subscription hardware or cloud-only vendors.
