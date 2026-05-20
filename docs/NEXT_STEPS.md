@@ -41,6 +41,7 @@
 - Training capture now gives feedback for all three photos: the original scan is shown as saved, then `Take 1` and `Take 2` update as each extra plant-box crop is captured.
 - Repository recognition loop: saved-plant point-and-ID should keep improving from the user's own labeled crop photos. If recognition fails later, ask `Take more photos for future recognition?` and let the user capture as many plant-box crop photos as they want. These should train or populate gardenin's own user-plant repository so future recognition can happen without an external API call.
 - A first implementation hook exists: after a failed/very low-confidence scan, if saved plants exist, the user can choose `More photos`, select a saved plant, and take unlimited plant-box crop photos for future recognition.
+- Product/pricing ideas are tracked in `docs/IDEAS.md`.
 - No-subscription water probe direction: support Wi-Fi gateways such as Ecowitt WH51 with GW1100/GW2000, Bluetooth plant sensors such as Mi Flora/Flower Care for pots, and later ESP32 DIY probes for custom beds.
 - If this chat context closes, reopen `C:\dev\plant watering` and ask Codex to read `PROJECT_CONTEXT.md`, `docs/NEXT_STEPS.md`, and `docs/DECISIONS.md`.
 
