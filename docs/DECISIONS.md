@@ -108,11 +108,15 @@ Reason: The product goal is to identify a user's own plants from gardenin's repo
 
 Implementation note: The first browser implementation uses a local crop-photo color/texture feature matcher. A saved plant must have at least three crop photos before local recognition can trigger. If the user rejects the local match, the scan falls back to Pl@ntNet.
 
+Implementation note: Saved plant cards show recognition readiness, and the scan panel shows why gardenin photos did or did not trigger before Pl@ntNet.
+
 ## 2026-05-20: Per-Plant Photo Library
 
 Decision: Users should be able to open a saved plant and see every crop-only photo tied to that plant, including the original ID crop, extra training crops, and later recognition observation crops.
 
 Reason: The photos are the user's record and the future recognition dataset. They need to be visible, inspectable, and eventually deletable/exportable.
+
+Implementation note: The browser prototype now supports per-photo export and delete from the plant photo library.
 
 ## 2026-05-20: Walking Mode Observation Flash
 

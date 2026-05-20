@@ -17,6 +17,7 @@ const startCameraButton = document.querySelector("#start-camera");
 const captureButton = document.querySelector("#capture");
 const scanResult = document.querySelector("#scan-result");
 const providerStatus = document.querySelector("#provider-status");
+const recognitionDebugSummary = document.querySelector("#recognition-debug-summary");
 const matchEyebrow = document.querySelector("#match-eyebrow");
 const matchName = document.querySelector("#match-name");
 const matchDetail = document.querySelector("#match-detail");
@@ -89,11 +90,28 @@ let pendingTrainingPhotos = [];
 let pendingKnownPlantId = null;
 let pendingMorePhotosCount = 0;
 let pendingProviderFallbackPayload = null;
+let activePhotoLibraryPlantId = null;
 const photoFeatureCache = new Map();
 const focusBox = { x: 0.18, y: 0.12, width: 0.64, height: 0.72 };
 const strongConfidence = 0.55;
 const weakConfidence = 0.25;
 const noReliableConfidence = 0.05;
+const localRecognitionMinimumPhotos = 3;
+
+const trainingShotPlan = [
+  {
+    step: "take-1",
+    label: "Leaf close-up",
+    prompt: "Frame a clear leaf close-up in the box.",
+    reason: "leaf-close-up"
+  },
+  {
+    step: "take-2",
+    label: "Whole plant or flower",
+    prompt: "Frame the whole plant, flower, fruit, or stem in the box.",
+    reason: "whole-plant-or-feature"
+  }
+];
 
 const profiles = [
   {
@@ -384,15 +402,20 @@ async function identifyFromImage(payload, options = {}) {
 
   try {
     if (!options.skipLocalRepository) {
+      renderRecognitionDebug("Checking gardenin photos first.");
       const localMatch = await localPlantMatchFor(payload);
       if (localMatch) {
         pendingProviderFallbackPayload = payload;
+        renderRecognitionDebug(
+          `gardenin photos recognized ${localMatch.plant.nickname} at ${confidencePercent(localMatch.candidate)} from ${localMatch.candidate.metadata.sampleCount} photo(s).`
+        );
         showKnownPlantRecognition(localMatch.plant, localMatch.candidate);
         return;
       }
     }
 
     pendingProviderFallbackPayload = null;
+    renderRecognitionDebug("Using Pl@ntNet because no confident local photo match was found.");
     const response = await fetch("/api/identify", {
       method: "POST",
       headers: {
@@ -435,6 +458,7 @@ async function identifyFromImage(payload, options = {}) {
 
 function showCandidates(candidates, payload) {
   const trainingSample = payload?.imageDataUrl ? {
+    id: makeId("photo"),
     cropImageDataUrl: payload.imageDataUrl,
     capturedAt: new Date().toISOString(),
     cropBox: payload.focusBox || null,
@@ -487,18 +511,22 @@ function selectCandidate(index) {
 async function localPlantMatchFor(payload) {
   const recognition = window.GardeninPhotoRecognition;
   if (!recognition || !payload?.imageDataUrl || plants.length === 0) {
+    renderRecognitionDebug("No saved local photo library yet. Using Pl@ntNet.");
     return null;
   }
 
   const queryFeature = await featureForPhoto(payload.imageDataUrl);
   if (!queryFeature) {
+    renderRecognitionDebug("Could not read the scan crop for local matching. Using Pl@ntNet.");
     return null;
   }
 
   const records = [];
+  const skipped = [];
   for (const plant of plants) {
     const photoUrls = photoDataUrlsForPlant(plant).slice(-24);
-    if (photoUrls.length < 3) {
+    if (photoUrls.length < localRecognitionMinimumPhotos) {
+      skipped.push(`${plant.nickname}: ${photoUrls.length}/${localRecognitionMinimumPhotos}`);
       continue;
     }
 
@@ -512,17 +540,32 @@ async function localPlantMatchFor(payload) {
 
     records.push({
       plantId: plant.id,
+      label: plant.nickname,
       features
     });
   }
 
+  if (records.length === 0) {
+    renderRecognitionDebug(`No plant has ${localRecognitionMinimumPhotos}+ crop photos yet. ${skipped.join("; ") || "Add more photos from each plant card."}`);
+    return null;
+  }
+
+  const rankings = recognition.rankPlants(queryFeature, records, {
+    minimumSamples: localRecognitionMinimumPhotos,
+    threshold: 0.76,
+    margin: 0.025
+  });
+  const best = rankings[0];
   const match = recognition.matchPlant(queryFeature, records, {
-    minimumSamples: 3,
+    minimumSamples: localRecognitionMinimumPhotos,
     threshold: 0.76,
     margin: 0.025
   });
 
   if (!match) {
+    renderRecognitionDebug(best
+      ? `Best local photo match was ${best.label} at ${Math.round(best.confidence * 100)}%, below the acceptance threshold or too close to another plant. Using Pl@ntNet.`
+      : "Local photo matching found no usable score. Using Pl@ntNet.");
     return null;
   }
 
@@ -614,7 +657,7 @@ function showKnownPlantRecognition(plant, candidate) {
     }
   });
   scanGuide.hidden = Boolean(candidate.observationBox);
-  knownPlantName.textContent = `${plant.nickname}?`;
+  knownPlantName.textContent = plant.nickname;
   knownPlantPopover.hidden = false;
   flashCameraStage();
 }
@@ -634,10 +677,12 @@ function confirmKnownPlantObservation() {
   }
 
   plant.careLogs.unshift({
+    id: makeId("log"),
     action: "observe",
     date: new Date().toISOString(),
     notes: "Recognized from camera scan.",
     observation: {
+      id: makeId("photo"),
       cropImageDataUrl: lastScanCropDataUrl,
       cropBox: focusBox,
       fullFrameStored: false,
@@ -707,6 +752,10 @@ async function renderProviderStatus() {
     providerStatus.textContent = "ID: unknown";
     providerStatus.classList.add("provider-demo");
   }
+}
+
+function renderRecognitionDebug(message) {
+  recognitionDebugSummary.textContent = message;
 }
 
 function maybeShowPhotoConsent() {
@@ -857,6 +906,7 @@ function openManualFromScan() {
 
   activeCandidate = quickAddCandidate(profiles[0]);
   activeCandidate.trainingSample = {
+    id: makeId("photo"),
     cropImageDataUrl: lastScanCropDataUrl,
     capturedAt: new Date().toISOString(),
     cropBox: focusBox,
@@ -906,6 +956,7 @@ async function captureMoreRecognitionPhoto() {
   plant.trainingPhotos = [
     ...(plant.trainingPhotos || []),
     {
+      id: makeId("photo"),
       cropImageDataUrl: cropDataUrl(snapshot, focusBox),
       capturedAt: new Date().toISOString(),
       cropBox: focusBox,
@@ -1028,8 +1079,8 @@ function maybeAskForTrainingPhotos(plant) {
   pendingTrainingPlantId = plant.id;
   pendingTrainingPhotos = [];
   trainingRequestTitle.textContent = `Help gardenin recognize ${plant.nickname} in the future?`;
-  trainingRequestDetail.textContent = "Take 1, then take 2. Plant-box crops only.";
-  trainingRequestYesButton.textContent = "Take 1";
+  trainingRequestDetail.textContent = "Capture a leaf close-up, then a whole-plant or flower/stem shot. Plant-box crops only.";
+  trainingRequestYesButton.textContent = trainingShotPlan[0].label;
   updateTrainingProgress();
   trainingRequestDialog.hidden = false;
 }
@@ -1067,14 +1118,16 @@ async function captureTrainingPhoto() {
   const context = snapshot.getContext("2d");
   context.drawImage(camera, 0, 0, snapshot.width, snapshot.height);
   pendingTrainingPhotos.push({
+    id: makeId("photo"),
     cropImageDataUrl: cropDataUrl(snapshot, focusBox),
     capturedAt: new Date().toISOString(),
     cropBox: focusBox,
     fullFrameStored: false,
-    reason: "post-save-training"
+    reason: trainingStepForIndex(pendingTrainingPhotos.length).reason,
+    shotType: trainingStepForIndex(pendingTrainingPhotos.length).label
   });
 
-  if (pendingTrainingPhotos.length >= 2) {
+  if (pendingTrainingPhotos.length >= trainingShotPlan.length) {
     updateTrainingProgress();
     saveTrainingPhotos();
     closeTrainingCapture();
@@ -1086,22 +1139,29 @@ async function captureTrainingPhoto() {
 }
 
 function updateTrainingCaptureText() {
-  const nextPhoto = Math.min(pendingTrainingPhotos.length + 1, 2);
+  const nextPhoto = Math.min(pendingTrainingPhotos.length + 1, trainingShotPlan.length);
+  const step = trainingStepForIndex(pendingTrainingPhotos.length);
   trainingPhotoCount.textContent = String(nextPhoto);
   const plant = plants.find((item) => item.id === pendingTrainingPlantId);
   trainingCaptureTitle.textContent = plant
-    ? `Frame ${plant.nickname} in the box.`
-    : "Frame the same plant in the box.";
-  trainingCaptureButton.textContent = `Take ${nextPhoto}`;
+    ? `${step.prompt} ${plant.nickname} stays in the box.`
+    : step.prompt;
+  trainingCaptureButton.textContent = step.label;
 }
 
 function updateTrainingProgress() {
   const progressRoots = [trainingRequestProgress, trainingCaptureProgress].filter(Boolean);
   for (const root of progressRoots) {
     setTrainingStep(root, "scan", "Saved", true);
-    setTrainingStep(root, "take-1", pendingTrainingPhotos.length >= 1 ? "Saved" : "Needed", pendingTrainingPhotos.length >= 1);
-    setTrainingStep(root, "take-2", pendingTrainingPhotos.length >= 2 ? "Saved" : "Needed", pendingTrainingPhotos.length >= 2);
+    trainingShotPlan.forEach((step, index) => {
+      const isComplete = pendingTrainingPhotos.length > index;
+      setTrainingStep(root, step.step, isComplete ? "Saved" : step.label, isComplete);
+    });
   }
+}
+
+function trainingStepForIndex(index) {
+  return trainingShotPlan[Math.min(index, trainingShotPlan.length - 1)];
 }
 
 function setTrainingStep(root, step, label, isComplete) {
@@ -1184,6 +1244,7 @@ function renderPlants() {
     const fragment = plantCardTemplate.content.cloneNode(true);
     const card = fragment.querySelector(".plant-card");
     const recommendation = recommendationsFor(plant)[0];
+    const readiness = recognitionReadinessForPlant(plant);
 
     fragment.querySelector(".plant-species").textContent = plant.species.commonName;
     fragment.querySelector(".plant-title").textContent = plant.nickname;
@@ -1191,6 +1252,9 @@ function renderPlants() {
     fragment.querySelector(".status-pill").classList.add(recommendation.statusClass);
     fragment.querySelector(".next-action").textContent = recommendation.title;
     fragment.querySelector(".next-detail").textContent = recommendation.detail;
+    const readinessElement = fragment.querySelector(".recognition-readiness");
+    readinessElement.textContent = readiness.text;
+    readinessElement.classList.add(readiness.className);
     fragment.querySelector(".care-context").textContent = careContextFor(plant);
 
     card.querySelectorAll("[data-action]").forEach((button) => {
@@ -1201,6 +1265,7 @@ function renderPlants() {
         }
 
         plant.careLogs.unshift({
+          id: makeId("log"),
           action: button.dataset.action,
           date: new Date().toISOString(),
           notes: ""
@@ -1216,7 +1281,23 @@ function renderPlants() {
   gardenSummary.textContent = plants.length === 1 ? "1 plant tracked" : `${plants.length} plants tracked`;
 }
 
+function recognitionReadinessForPlant(plant) {
+  const photoCount = photoDataUrlsForPlant(plant).length;
+  if (photoCount >= localRecognitionMinimumPhotos) {
+    return {
+      text: `Recognition ready: ${photoCount} crop photos saved.`,
+      className: "is-ready"
+    };
+  }
+
+  return {
+    text: `Recognition building: ${photoCount}/${localRecognitionMinimumPhotos} crop photos saved.`,
+    className: "is-building"
+  };
+}
+
 function openPhotoLibrary(plant) {
+  activePhotoLibraryPlantId = plant.id;
   const photos = photosForPlant(plant);
   photoLibraryTitle.textContent = `${plant.nickname} photos`;
 
@@ -1234,6 +1315,7 @@ function openPhotoLibrary(plant) {
 
 function closePhotoLibrary() {
   photoLibraryDialog.hidden = true;
+  activePhotoLibraryPlantId = null;
   photoGrid.replaceChildren();
 }
 
@@ -1242,6 +1324,8 @@ function photosForPlant(plant) {
 
   if (plant.trainingSample?.cropImageDataUrl) {
     photos.push({
+      id: plant.trainingSample.id,
+      source: "trainingSample",
       imageDataUrl: plant.trainingSample.cropImageDataUrl,
       label: "Original ID photo",
       capturedAt: plant.trainingSample.capturedAt || plant.dateAdded,
@@ -1255,6 +1339,8 @@ function photosForPlant(plant) {
     }
 
     photos.push({
+      id: photo.id,
+      source: "trainingPhoto",
       imageDataUrl: photo.cropImageDataUrl,
       label: photo.reason === "future-recognition"
         ? `Future recognition photo ${index + 1}`
@@ -1270,6 +1356,9 @@ function photosForPlant(plant) {
     }
 
     photos.push({
+      id: log.observation.id,
+      source: "observation",
+      logId: log.id,
       imageDataUrl: log.observation.cropImageDataUrl,
       label: "Recognition observation",
       capturedAt: log.date,
@@ -1295,8 +1384,75 @@ function photoTileFor(photo) {
   const meta = document.createElement("span");
   meta.textContent = `${formatPhotoDate(photo.capturedAt)} - ${photo.type}`;
 
-  tile.append(image, label, meta);
+  const actions = document.createElement("div");
+  actions.className = "photo-actions";
+
+  const exportButton = document.createElement("button");
+  exportButton.type = "button";
+  exportButton.textContent = "Export";
+  exportButton.addEventListener("click", () => exportPlantPhoto(photo));
+
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.textContent = "Delete";
+  deleteButton.addEventListener("click", () => deletePlantPhoto(photo));
+
+  actions.append(exportButton, deleteButton);
+  tile.append(image, label, meta, actions);
   return tile;
+}
+
+function exportPlantPhoto(photo) {
+  const plant = plants.find((item) => item.id === activePhotoLibraryPlantId);
+  if (!plant || !photo?.imageDataUrl) {
+    return;
+  }
+
+  const link = document.createElement("a");
+  link.href = photo.imageDataUrl;
+  link.download = `${slugForFile(plant.nickname)}-${photo.id || "photo"}.jpg`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+}
+
+function deletePlantPhoto(photo) {
+  const plant = plants.find((item) => item.id === activePhotoLibraryPlantId);
+  if (!plant || !photo?.id) {
+    return;
+  }
+
+  const shouldDelete = window.confirm("Delete this saved crop photo?");
+  if (!shouldDelete) {
+    return;
+  }
+
+  if (photo.source === "trainingSample" && plant.trainingSample?.id === photo.id) {
+    plant.trainingSample = null;
+  }
+
+  if (photo.source === "trainingPhoto") {
+    plant.trainingPhotos = (plant.trainingPhotos || []).filter((item) => item.id !== photo.id);
+  }
+
+  if (photo.source === "observation") {
+    const log = (plant.careLogs || []).find((item) => item.id === photo.logId);
+    if (log?.observation?.id === photo.id) {
+      log.observation = null;
+    }
+  }
+
+  savePlants();
+  renderPlants();
+  openPhotoLibrary(plants.find((item) => item.id === plant.id) || plant);
+}
+
+function slugForFile(value) {
+  return String(value || "plant")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "plant";
 }
 
 function confidenceLabel(confidence) {
@@ -1322,6 +1478,10 @@ function formatPhotoDate(value) {
 function dateValue(value) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function makeId(prefix) {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
 function recommendationsFor(plant) {
@@ -1722,6 +1882,7 @@ function sanitizePlantRecord(plant) {
 
   const trainingSample = plant.trainingSample
     ? {
+      id: plant.trainingSample.id || makeId("photo"),
       cropImageDataUrl: plant.trainingSample.cropImageDataUrl || null,
       capturedAt: plant.trainingSample.capturedAt || plant.dateAdded || null,
       cropBox: plant.trainingSample.cropBox || plant.identification?.observationBox || null,
@@ -1737,11 +1898,24 @@ function sanitizePlantRecord(plant) {
     ...plant,
     trainingSample,
     trainingPhotos: (plant.trainingPhotos || []).map((photo) => ({
+      id: photo.id || makeId("photo"),
       cropImageDataUrl: photo.cropImageDataUrl || null,
       capturedAt: photo.capturedAt || plant.dateAdded || null,
       cropBox: photo.cropBox || plant.identification?.observationBox || null,
       fullFrameStored: false,
-      reason: photo.reason || null
+      reason: photo.reason || null,
+      shotType: photo.shotType || null
+    })),
+    careLogs: (plant.careLogs || []).map((log) => ({
+      ...log,
+      id: log.id || makeId("log"),
+      observation: log.observation
+        ? {
+          ...log.observation,
+          id: log.observation.id || makeId("photo"),
+          fullFrameStored: false
+        }
+        : log.observation
     })),
     photoUse: {
       ...(plant.photoUse || {}),

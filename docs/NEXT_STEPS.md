@@ -45,6 +45,11 @@
 - Each saved plant now has a Photos view that pulls together its original ID crop, extra training crops, and later recognition/observation crops from local saved data.
 - Scan now checks the user's local crop-photo repository before Pl@ntNet. A saved plant needs at least three crop photos before it is eligible. If the local matcher is confident, the UI flashes and asks `Plant nickname?`; if the user says no, Scan falls through to the real provider.
 - `npm.cmd run check` now includes a repeatable local photo-recognition test using synthetic plant images, proving that the matcher recognizes trained plants with enough photos and refuses plants with fewer than three photos.
+- Saved plant cards now show recognition readiness, including whether they have the three crop photos needed for local recognition.
+- The scan panel now shows recognition diagnostics explaining whether gardenin photos or Pl@ntNet were used, plus why local recognition did or did not fire.
+- Training photos now use guided prompts: leaf close-up, then whole plant or flower/stem.
+- The plant photo library now supports per-photo export and delete.
+- `docs/HOSTED_DATA_PLAN.md` captures the first hosted database/object-storage shape for plant records, crop photos, care logs, weather snapshots, and recognition events.
 - Product/pricing ideas are tracked in `docs/IDEAS.md`.
 - No-subscription water probe direction: support Wi-Fi gateways such as Ecowitt WH51 with GW1100/GW2000, Bluetooth plant sensors such as Mi Flora/Flower Care for pots, and later ESP32 DIY probes for custom beds.
 - If this chat context closes, reopen `C:\dev\plant watering` and ask Codex to read `PROJECT_CONTEXT.md`, `docs/NEXT_STEPS.md`, and `docs/DECISIONS.md`.
@@ -55,7 +60,6 @@
 - Should weather use WeatherKit or another provider?
 - Should plant care schedules become user-adjustable?
 - Should the app support garden zones/beds as first-class objects?
-- What export/delete controls should exist for a user's saved plant photos?
 - What is the fastest quick-add flow: type plant name first, choose from known samples, or add unknown plant and identify later?
 - What database should hold hosted plant records, scan photos, corrections, weather context, and care history?
 - Which first water probe path should be implemented: Ecowitt Wi-Fi gateway, Bluetooth Mi Flora import, or manual/ESP32 endpoint?
@@ -74,6 +78,6 @@
 10. Add a user setting to change photo-training consent after first choice.
 11. Add a real hosted database/object store so crop images and training photos survive across devices and browser resets.
 12. Replace the first local color/texture matcher with stronger embeddings or a real model once enough labeled crop photos exist.
-13. Add visible diagnostics for local recognition: photo count, match score, and why a plant was or was not eligible.
+13. Add hosted persistence for plant records, crop photos, care logs, weather snapshots, and recognition events.
 14. Use Perenual plant details to enrich saved plant care profiles after ID/manual confirmation.
-15. Add per-photo delete/export controls and a user-visible data settings screen.
+15. Add a full user-visible data settings screen for consent, export, and account deletion.

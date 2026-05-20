@@ -168,12 +168,7 @@
     const minimumSamples = options.minimumSamples ?? 3;
     const threshold = options.threshold ?? 0.76;
     const margin = options.margin ?? 0.025;
-    const topSampleCount = options.topSampleCount ?? 3;
-
-    const results = plantRecords
-      .map((record) => scorePlant(queryFeature, record, minimumSamples, topSampleCount))
-      .filter(Boolean)
-      .sort((left, right) => right.confidence - left.confidence);
+    const results = rankPlants(queryFeature, plantRecords, options);
 
     const best = results[0];
     const second = results[1];
@@ -189,6 +184,16 @@
       ...best,
       runnerUpConfidence: second?.confidence || 0
     };
+  }
+
+  function rankPlants(queryFeature, plantRecords, options = {}) {
+    const minimumSamples = options.minimumSamples ?? 3;
+    const topSampleCount = options.topSampleCount ?? 3;
+
+    return plantRecords
+      .map((record) => scorePlant(queryFeature, record, minimumSamples, topSampleCount))
+      .filter(Boolean)
+      .sort((left, right) => right.confidence - left.confidence);
   }
 
   function scorePlant(queryFeature, record, minimumSamples, topSampleCount) {
@@ -207,6 +212,7 @@
 
     return {
       plantId: record.plantId,
+      label: record.label || record.plantId,
       confidence,
       bestSampleConfidence: topScores[0],
       sampleCount: features.length
@@ -221,6 +227,7 @@
     featureFromImageData,
     featureFromDataUrl,
     compareFeatures,
+    rankPlants,
     matchPlant
   };
 });
