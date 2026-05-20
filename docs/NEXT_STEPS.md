@@ -38,6 +38,7 @@
 - Visible product naming is moving to gardenin. The GitHub remote is `https://github.com/Tobinfo/gardenin.git`; the Render URL is still `https://floraos.onrender.com` until the hosted service/domain is renamed.
 - After saving a confirmed plant with photo consent enabled, the browser asks `Help gardenin recognize Plant Nickname in the future?` and can capture `Take 1` / `Take 2` plant-box crop photos into the plant's local training set.
 - Saved-plant recognition is implemented locally in the browser: if a scan returns a usable species match for an already saved plant, the camera flashes and asks `Plant nickname?` instead of freezing into the first-time add flow. Confirming it logs an observation with a plant-box crop only.
+- Training capture now gives feedback for all three photos: the original scan is shown as saved, then `Take 1` and `Take 2` update as each extra plant-box crop is captured.
 - No-subscription water probe direction: support Wi-Fi gateways such as Ecowitt WH51 with GW1100/GW2000, Bluetooth plant sensors such as Mi Flora/Flower Care for pots, and later ESP32 DIY probes for custom beds.
 - If this chat context closes, reopen `C:\dev\plant watering` and ask Codex to read `PROJECT_CONTEXT.md`, `docs/NEXT_STEPS.md`, and `docs/DECISIONS.md`.
 

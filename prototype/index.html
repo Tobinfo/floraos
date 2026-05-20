@@ -157,6 +157,11 @@
         <p class="eyebrow">Improve recognition</p>
         <h2 id="training-request-title">Help gardenin recognize this plant in the future?</h2>
         <p id="training-request-detail">Take 1, then take 2. Plant-box crops only.</p>
+        <ol class="training-progress" id="training-request-progress" aria-label="Training photo progress">
+          <li data-step="scan"><span>Original scan</span><strong>Saved</strong></li>
+          <li data-step="take-1"><span>Take 1</span><strong>Needed</strong></li>
+          <li data-step="take-2"><span>Take 2</span><strong>Needed</strong></li>
+        </ol>
         <div class="scan-actions">
           <button class="primary-button" id="training-request-yes" type="button">Take 1</button>
           <button class="ghost-button" id="training-request-no" type="button">Skip</button>
@@ -169,6 +174,11 @@
         <p class="eyebrow">Photo <span id="training-photo-count">1</span> of 2</p>
         <h2 id="training-capture-title">Frame the same plant in the box.</h2>
         <p>Use a different useful angle, like leaves, flower, fruit, or the full plant.</p>
+        <ol class="training-progress" id="training-capture-progress" aria-label="Training photo progress">
+          <li data-step="scan"><span>Original scan</span><strong>Saved</strong></li>
+          <li data-step="take-1"><span>Take 1</span><strong>Needed</strong></li>
+          <li data-step="take-2"><span>Take 2</span><strong>Needed</strong></li>
+        </ol>
         <div class="scan-actions">
           <button class="primary-button" id="training-capture-button" type="button">Take 1</button>
           <button class="ghost-button" id="training-capture-stop" type="button">Done</button>

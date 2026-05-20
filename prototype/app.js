@@ -52,11 +52,13 @@ const photoConsentNoButton = document.querySelector("#photo-consent-no");
 const trainingRequestDialog = document.querySelector("#training-request");
 const trainingRequestTitle = document.querySelector("#training-request-title");
 const trainingRequestDetail = document.querySelector("#training-request-detail");
+const trainingRequestProgress = document.querySelector("#training-request-progress");
 const trainingRequestYesButton = document.querySelector("#training-request-yes");
 const trainingRequestNoButton = document.querySelector("#training-request-no");
 const trainingCaptureDialog = document.querySelector("#training-capture");
 const trainingPhotoCount = document.querySelector("#training-photo-count");
 const trainingCaptureTitle = document.querySelector("#training-capture-title");
+const trainingCaptureProgress = document.querySelector("#training-capture-progress");
 const trainingCaptureButton = document.querySelector("#training-capture-button");
 const trainingCaptureStopButton = document.querySelector("#training-capture-stop");
 
@@ -828,6 +830,7 @@ function maybeAskForTrainingPhotos(plant) {
   trainingRequestTitle.textContent = `Help gardenin recognize ${plant.nickname} in the future?`;
   trainingRequestDetail.textContent = "Take 1, then take 2. Plant-box crops only.";
   trainingRequestYesButton.textContent = "Take 1";
+  updateTrainingProgress();
   trainingRequestDialog.hidden = false;
 }
 
@@ -841,6 +844,7 @@ async function startTrainingPhotoFlow() {
   trainingRequestDialog.hidden = true;
   pendingTrainingPhotos = [];
   updateTrainingCaptureText();
+  updateTrainingProgress();
   trainingCaptureDialog.hidden = false;
   if (!stream) {
     await startCamera();
@@ -870,12 +874,14 @@ async function captureTrainingPhoto() {
   });
 
   if (pendingTrainingPhotos.length >= 2) {
+    updateTrainingProgress();
     saveTrainingPhotos();
     closeTrainingCapture();
     return;
   }
 
   updateTrainingCaptureText();
+  updateTrainingProgress();
 }
 
 function updateTrainingCaptureText() {
@@ -886,6 +892,25 @@ function updateTrainingCaptureText() {
     ? `Frame ${plant.nickname} in the box.`
     : "Frame the same plant in the box.";
   trainingCaptureButton.textContent = `Take ${nextPhoto}`;
+}
+
+function updateTrainingProgress() {
+  const progressRoots = [trainingRequestProgress, trainingCaptureProgress].filter(Boolean);
+  for (const root of progressRoots) {
+    setTrainingStep(root, "scan", "Saved", true);
+    setTrainingStep(root, "take-1", pendingTrainingPhotos.length >= 1 ? "Saved" : "Needed", pendingTrainingPhotos.length >= 1);
+    setTrainingStep(root, "take-2", pendingTrainingPhotos.length >= 2 ? "Saved" : "Needed", pendingTrainingPhotos.length >= 2);
+  }
+}
+
+function setTrainingStep(root, step, label, isComplete) {
+  const item = root.querySelector(`[data-step="${step}"]`);
+  if (!item) {
+    return;
+  }
+
+  item.classList.toggle("is-complete", isComplete);
+  item.querySelector("strong").textContent = label;
 }
 
 function saveTrainingPhotos() {

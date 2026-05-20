@@ -512,6 +512,43 @@ h3 {
   align-items: center;
 }
 
+.training-progress {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.training-progress li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.training-progress strong {
+  color: var(--warning);
+}
+
+.training-progress li.is-complete {
+  border-color: #b7dccb;
+  background: #e6f3ed;
+  color: var(--leaf-dark);
+}
+
+.training-progress li.is-complete strong {
+  color: var(--leaf-dark);
+}
+
 .review-panel {
   display: grid;
   gap: 12px;
