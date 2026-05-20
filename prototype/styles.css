@@ -103,6 +103,16 @@ button:disabled {
   box-shadow: 0 0 0 4px rgba(41, 163, 111, 0.16), 0 18px 50px rgba(74, 52, 41, 0.12);
 }
 
+.camera-stage.recognized-flash::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  animation: recognitionFlash 680ms ease-out;
+  background: rgba(248, 240, 166, 0.62);
+}
+
 .scan-guide {
   position: absolute;
   inset: 0;
@@ -168,6 +178,41 @@ button:disabled {
 .detection-box.is-weak-match {
   border-style: dashed;
   box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.18), 0 0 24px rgba(248, 240, 166, 0.28);
+}
+
+.known-plant-popover {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 6;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  max-width: calc(100% - 24px);
+  padding: 12px;
+  border: 1px solid rgba(183, 220, 203, 0.92);
+  border-radius: 8px;
+  background: rgba(251, 250, 246, 0.96);
+  box-shadow: 0 18px 50px rgba(21, 25, 20, 0.24);
+}
+
+.known-plant-popover strong {
+  display: block;
+  color: var(--ink);
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+.known-plant-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.known-plant-actions .primary-button,
+.known-plant-actions .ghost-button {
+  min-height: 36px;
+  padding: 0 12px;
 }
 
 .camera-empty {
@@ -587,6 +632,20 @@ select {
   color: var(--leaf-dark);
 }
 
+@keyframes recognitionFlash {
+  0% {
+    opacity: 0;
+  }
+
+  18% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
 @media (max-width: 860px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -623,6 +682,10 @@ select {
     align-items: stretch;
     flex-direction: column;
     width: 100%;
+  }
+
+  .known-plant-popover {
+    grid-template-columns: 1fr;
   }
 
   .weather-form {

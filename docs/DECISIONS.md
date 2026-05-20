@@ -90,9 +90,15 @@ Reason: Cropping reduces faces, rooms, homes, addresses, and unrelated backgroun
 
 ## 2026-05-20: Post-Save Training Photos
 
-Decision: After a user saves a confirmed plant and has opted into photo use, ask `Help gardenin identify this plant better in the future for you?` If accepted, capture two more plant-box crop photos.
+Decision: After a user saves a confirmed plant and has opted into photo use, ask `Help gardenin recognize Plant Nickname in the future?` If accepted, capture two more plant-box crop photos with `Take 1` and `Take 2` prompts.
 
 Reason: The best training data comes after confirmation. Asking for two additional crop-only photos builds a stronger labeled set without requiring extra provider calls.
+
+## 2026-05-20: Saved-Plant Recognition Feedback
+
+Decision: When a scan matches a species already saved in the user's garden with usable confidence, flash the camera view and ask `Plant nickname?` instead of freezing into the first-time add flow.
+
+Reason: Previously identified plants should feel like recognition, not re-entry. Confirming the prompt logs an observation crop for that saved plant while keeping walking mode fluid.
 
 ## 2026-05-20: Walking Mode Observation Flash
 

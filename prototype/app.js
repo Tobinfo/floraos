@@ -5,6 +5,10 @@ const capturedPreview = document.querySelector("#captured-preview");
 const scanGuide = document.querySelector("#scan-guide");
 const detectionBox = document.querySelector("#detection-box");
 const detectionLabel = document.querySelector("#detection-label");
+const knownPlantPopover = document.querySelector("#known-plant-popover");
+const knownPlantName = document.querySelector("#known-plant-name");
+const knownPlantYesButton = document.querySelector("#known-plant-yes");
+const knownPlantNoButton = document.querySelector("#known-plant-no");
 const cameraEmpty = document.querySelector("#camera-empty");
 const cameraReadyButton = document.querySelector("#camera-ready");
 const cameraStatus = document.querySelector("#camera-status");
@@ -46,11 +50,13 @@ const photoConsentZipInput = document.querySelector("#photo-consent-zip");
 const photoConsentYesButton = document.querySelector("#photo-consent-yes");
 const photoConsentNoButton = document.querySelector("#photo-consent-no");
 const trainingRequestDialog = document.querySelector("#training-request");
+const trainingRequestTitle = document.querySelector("#training-request-title");
 const trainingRequestDetail = document.querySelector("#training-request-detail");
 const trainingRequestYesButton = document.querySelector("#training-request-yes");
 const trainingRequestNoButton = document.querySelector("#training-request-no");
 const trainingCaptureDialog = document.querySelector("#training-capture");
 const trainingPhotoCount = document.querySelector("#training-photo-count");
+const trainingCaptureTitle = document.querySelector("#training-capture-title");
 const trainingCaptureButton = document.querySelector("#training-capture-button");
 const trainingCaptureStopButton = document.querySelector("#training-capture-stop");
 
@@ -69,6 +75,7 @@ let isFrozenAfterScan = false;
 let photoTrainingConsent = loadPhotoTrainingConsent();
 let pendingTrainingPlantId = null;
 let pendingTrainingPhotos = [];
+let pendingKnownPlantId = null;
 const focusBox = { x: 0.18, y: 0.12, width: 0.64, height: 0.72 };
 const strongConfidence = 0.55;
 const weakConfidence = 0.25;
@@ -147,6 +154,8 @@ demoScanButton.addEventListener("click", () => identifyFromImage({
 reviewAddButton.addEventListener("click", openReview);
 retryScanButton.addEventListener("click", retryScan);
 manualFromScanButton.addEventListener("click", openManualFromScan);
+knownPlantYesButton.addEventListener("click", confirmKnownPlantObservation);
+knownPlantNoButton.addEventListener("click", rejectKnownPlantObservation);
 quickAddButton.addEventListener("click", openQuickAdd);
 quickSpeciesInput.addEventListener("change", updateQuickAddSpecies);
 savePlantButton.addEventListener("click", savePlant);
@@ -197,6 +206,7 @@ async function startCamera() {
     capturedPreview.hidden = true;
     scanGuide.hidden = false;
     detectionBox.hidden = true;
+    knownPlantPopover.hidden = true;
     showCameraOverlay(false);
     feedStatus.hidden = false;
     feedStatus.style.display = "block";
@@ -250,6 +260,7 @@ function stopCamera() {
   camera.style.display = "none";
   cameraStage.classList.remove("is-live");
   scanGuide.hidden = true;
+  knownPlantPopover.hidden = true;
   feedStatus.hidden = true;
   feedStatus.style.display = "none";
   captureButton.disabled = true;
@@ -404,6 +415,13 @@ function showCandidates(candidates, payload) {
     ...normalizeCandidate(candidate),
     trainingSample
   }));
+
+  const knownPlant = knownPlantFor(activeCandidates[0]);
+  if (knownPlant && payload?.imageDataUrl && !Number.isInteger(payload.demoIndex)) {
+    showKnownPlantRecognition(knownPlant, activeCandidates[0]);
+    return;
+  }
+
   selectCandidate(0);
 
   if (payload?.imageDataUrl && !Number.isInteger(payload.demoIndex)) {
@@ -415,6 +433,7 @@ function selectCandidate(index) {
   activeCandidate = activeCandidates[index];
   const isNoReliableMatch = isNoReliableCandidate(activeCandidate);
   showCameraOverlay(false);
+  knownPlantPopover.hidden = true;
   renderDetectionBox(activeCandidate);
   scanGuide.hidden = Boolean(activeCandidate.observationBox);
   matchEyebrow.textContent = confidenceHeading(activeCandidate);
@@ -431,6 +450,91 @@ function selectCandidate(index) {
   manualFromScanButton.hidden = !isNoReliableMatch || !lastScanCropDataUrl;
   renderCandidateOptions(index);
   scanResult.hidden = false;
+}
+
+function knownPlantFor(candidate) {
+  if (!candidate || isNoReliableCandidate(candidate) || candidate.confidence < weakConfidence) {
+    return null;
+  }
+
+  const candidateSpecies = normalizePlantName(candidate.profile.commonName);
+  const candidateScientific = normalizePlantName(candidate.profile.scientificName);
+  return plants.find((plant) => {
+    const plantSpecies = normalizePlantName(plant.species?.commonName);
+    const plantScientific = normalizePlantName(plant.species?.scientificName);
+    return plantSpecies && (
+      plantSpecies === candidateSpecies ||
+      plantSpecies === candidateScientific ||
+      plantScientific === candidateSpecies ||
+      plantScientific === candidateScientific
+    );
+  }) || null;
+}
+
+function showKnownPlantRecognition(plant, candidate) {
+  activeCandidate = candidate;
+  pendingKnownPlantId = plant.id;
+  showCameraOverlay(false);
+  scanResult.hidden = true;
+  renderDetectionBox({
+    ...candidate,
+    profile: {
+      ...candidate.profile,
+      commonName: plant.nickname
+    }
+  });
+  scanGuide.hidden = Boolean(candidate.observationBox);
+  knownPlantName.textContent = `${plant.nickname}?`;
+  knownPlantPopover.hidden = false;
+  flashCameraStage();
+}
+
+function flashCameraStage() {
+  cameraStage.classList.remove("recognized-flash");
+  void cameraStage.offsetWidth;
+  cameraStage.classList.add("recognized-flash");
+  window.setTimeout(() => cameraStage.classList.remove("recognized-flash"), 700);
+}
+
+function confirmKnownPlantObservation() {
+  const plant = plants.find((item) => item.id === pendingKnownPlantId);
+  if (!plant) {
+    rejectKnownPlantObservation();
+    return;
+  }
+
+  plant.careLogs.unshift({
+    action: "observe",
+    date: new Date().toISOString(),
+    notes: "Recognized from camera scan.",
+    observation: {
+      cropImageDataUrl: lastScanCropDataUrl,
+      cropBox: focusBox,
+      fullFrameStored: false,
+      providerName: activeCandidate?.metadata?.providerName || null,
+      confidence: activeCandidate?.confidence || null
+    }
+  });
+  savePlants();
+  renderPlants();
+  knownPlantPopover.hidden = true;
+  pendingKnownPlantId = null;
+}
+
+function rejectKnownPlantObservation() {
+  knownPlantPopover.hidden = true;
+  pendingKnownPlantId = null;
+  if (activeCandidate) {
+    selectCandidate(0);
+    freezeFeedForReview();
+  }
+}
+
+function normalizePlantName(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ");
 }
 
 function normalizeCandidate(candidate) {
@@ -721,7 +825,9 @@ function maybeAskForTrainingPhotos(plant) {
 
   pendingTrainingPlantId = plant.id;
   pendingTrainingPhotos = [];
-  trainingRequestDetail.textContent = `Add two more plant-box photos for ${plant.nickname}.`;
+  trainingRequestTitle.textContent = `Help gardenin recognize ${plant.nickname} in the future?`;
+  trainingRequestDetail.textContent = "Take 1, then take 2. Plant-box crops only.";
+  trainingRequestYesButton.textContent = "Take 1";
   trainingRequestDialog.hidden = false;
 }
 
@@ -773,7 +879,13 @@ async function captureTrainingPhoto() {
 }
 
 function updateTrainingCaptureText() {
-  trainingPhotoCount.textContent = String(Math.min(pendingTrainingPhotos.length + 1, 2));
+  const nextPhoto = Math.min(pendingTrainingPhotos.length + 1, 2);
+  trainingPhotoCount.textContent = String(nextPhoto);
+  const plant = plants.find((item) => item.id === pendingTrainingPlantId);
+  trainingCaptureTitle.textContent = plant
+    ? `Frame ${plant.nickname} in the box.`
+    : "Frame the same plant in the box.";
+  trainingCaptureButton.textContent = `Take ${nextPhoto}`;
 }
 
 function saveTrainingPhotos() {
@@ -1017,7 +1129,12 @@ function careContextFor(plant) {
   const lastFertilized = lastCareDate(plant, "fertilize");
   const lastPruned = lastCareDate(plant, "prune");
   const lastInspected = lastCareDate(plant, "inspect");
+  const lastObserved = lastCareDate(plant, "observe");
   const rain = forecast.find((day) => day.precipitationInches >= 0.25);
+
+  if (lastObserved) {
+    context.push(`Seen ${relativeDay(lastObserved)}.`);
+  }
 
   context.push(lastWatered ? `Watered ${relativeDay(lastWatered)}.` : "No watering logged yet.");
 

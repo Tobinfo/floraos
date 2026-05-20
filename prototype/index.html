@@ -21,6 +21,16 @@
           <div class="detection-box" id="detection-box" hidden>
             <span id="detection-label">Plant</span>
           </div>
+          <div class="known-plant-popover" id="known-plant-popover" hidden>
+            <div>
+              <p class="eyebrow">Recognized</p>
+              <strong id="known-plant-name">Hosta 2?</strong>
+            </div>
+            <div class="known-plant-actions">
+              <button class="primary-button" id="known-plant-yes" type="button">Yes</button>
+              <button class="ghost-button" id="known-plant-no" type="button">No</button>
+            </div>
+          </div>
           <div class="camera-empty" id="camera-empty">
             <span class="empty-icon">+</span>
             <button class="camera-ready-button" id="camera-ready" type="button">Ready</button>
@@ -145,10 +155,10 @@
     <section class="consent-dialog" id="training-request" role="dialog" aria-modal="true" aria-labelledby="training-request-title" hidden>
       <div class="consent-panel">
         <p class="eyebrow">Improve recognition</p>
-        <h2 id="training-request-title">Help gardenin identify this plant better in the future for you?</h2>
-        <p id="training-request-detail">Add two more plant-box photos after saving.</p>
+        <h2 id="training-request-title">Help gardenin recognize this plant in the future?</h2>
+        <p id="training-request-detail">Take 1, then take 2. Plant-box crops only.</p>
         <div class="scan-actions">
-          <button class="primary-button" id="training-request-yes" type="button">Add photos</button>
+          <button class="primary-button" id="training-request-yes" type="button">Take 1</button>
           <button class="ghost-button" id="training-request-no" type="button">Skip</button>
         </div>
       </div>
@@ -160,7 +170,7 @@
         <h2 id="training-capture-title">Frame the same plant in the box.</h2>
         <p>Use a different useful angle, like leaves, flower, fruit, or the full plant.</p>
         <div class="scan-actions">
-          <button class="primary-button" id="training-capture-button" type="button">Capture photo</button>
+          <button class="primary-button" id="training-capture-button" type="button">Take 1</button>
           <button class="ghost-button" id="training-capture-stop" type="button">Done</button>
         </div>
       </div>
