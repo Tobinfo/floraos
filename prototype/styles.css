@@ -487,6 +487,22 @@ h3 {
   background: rgba(21, 25, 20, 0.64);
 }
 
+.capture-assist {
+  top: auto;
+  left: auto;
+  right: 20px;
+  bottom: 20px;
+  display: block;
+  width: min(420px, calc(100vw - 40px));
+  padding: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+.capture-assist .consent-panel {
+  pointer-events: auto;
+}
+
 .consent-panel {
   display: grid;
   gap: 14px;
@@ -723,6 +739,12 @@ select {
 
   .known-plant-popover {
     grid-template-columns: 1fr;
+  }
+
+  .capture-assist {
+    right: 10px;
+    bottom: 10px;
+    width: min(360px, calc(100vw - 20px));
   }
 
   .weather-form {

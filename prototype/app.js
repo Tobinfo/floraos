@@ -715,6 +715,9 @@ function openReview() {
 
 function retryScan() {
   closeReview();
+  knownPlantPopover.hidden = true;
+  morePhotosRequestDialog.hidden = true;
+  trainingCaptureDialog.hidden = true;
   scanResult.hidden = true;
   detectionBox.hidden = true;
   retryScanButton.hidden = true;
