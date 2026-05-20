@@ -34,7 +34,7 @@ Reason: Real plant ID providers may require API keys and response normalization.
 
 ## 2026-05-19: Scan Versus Add Plant
 
-Decision: Scan mode should keep the camera live for walking around a garden. Add Plant should be the freeze-frame moment for reviewing, correcting, and saving.
+Decision: The long-term goal is for Scan mode to keep the camera live for walking around a garden, while Add Plant is the freeze-frame moment for reviewing, correcting, and saving.
 
 Reason: Walking identification and plant record creation are different jobs. Freezing every scan makes garden walk mode feel broken.
 
@@ -49,6 +49,12 @@ Reason: The user does not want terminal-driven local startup as the normal exper
 Decision: The primary Scan path should use Pl@ntNet when configured, and demo IDs should stay clearly separated as demo/test behavior.
 
 Reason: Fake IDs in the main scan flow destroy trust. The UI and server status should make the active provider obvious.
+
+## 2026-05-20: Freeze After ID For Current Prototype
+
+Decision: In the current hosted prototype, Scan should stop the feed immediately after an ID result.
+
+Reason: The review/save flow is still being shaped, and freezing the captured frame makes it easier to confirm or reject the ID before logging a plant. Continuous walking scan can return after the confidence and correction workflow is stronger.
 
 ## 2026-05-20: Probe Direction
 

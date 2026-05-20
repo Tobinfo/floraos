@@ -23,7 +23,8 @@
 - `Start GardenSnap Prototype.cmd` now clears the old local server on port 5173, opens the app, and starts the server with local `.env` settings.
 - Render is connected to `https://github.com/Tobinfo/floraos`; the hosted service is `https://floraos.onrender.com`.
 - Render must have `PLANT_ID_PROVIDER=plantnet` and `PLANTNET_API_KEY` set, then redeploy, before hosted Scan can use real IDs.
-- Scan mode is intended as walking mode: keep the camera live, identify the framed plant, and show the result. Add Plant is the freeze-frame point for reviewing and saving.
+- Hosted Pl@ntNet scanning has successfully identified and logged three plants.
+- For now, Scan should freeze the camera feed immediately after an ID result so the user can review the captured frame before saving. Continuous live walking mode can return later.
 - Saved plants now include the provider metadata and scan crop needed to become future training data.
 - No-subscription water probe direction: support Wi-Fi gateways such as Ecowitt WH51 with GW1100/GW2000, Bluetooth plant sensors such as Mi Flora/Flower Care for pots, and later ESP32 DIY probes for custom beds.
 - If this chat context closes, reopen `C:\dev\plant watering` and ask Codex to read `PROJECT_CONTEXT.md`, `docs/NEXT_STEPS.md`, and `docs/DECISIONS.md`.
@@ -43,7 +44,7 @@
 
 1. Open `https://floraos.onrender.com/api/status` and confirm it reports `plantIdProvider` as `plantnet` and `hasPlantNetKey` as `true`.
 2. If hosted status is still demo/missing key, add or fix Render env vars and redeploy.
-3. Make the UI show a small provider status pill so fake demo IDs are obvious.
+3. Keep the UI clear about provider status, confidence level, and alternate Pl@ntNet candidates so low-confidence IDs do not feel falsely certain.
 4. Add a hosted database before relying on the app to collect long-term training/care data.
 5. Connect weather with location permission and Open-Meteo/NWS-style current conditions.
 6. Add a water-need model that can consume manual watering logs, weather, recent pruning, plant type, and probe readings.

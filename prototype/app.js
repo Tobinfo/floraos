@@ -13,9 +13,13 @@ const startCameraButton = document.querySelector("#start-camera");
 const captureButton = document.querySelector("#capture");
 const demoScanButton = document.querySelector("#demo-scan");
 const scanResult = document.querySelector("#scan-result");
+const providerStatus = document.querySelector("#provider-status");
+const matchEyebrow = document.querySelector("#match-eyebrow");
 const matchName = document.querySelector("#match-name");
 const matchDetail = document.querySelector("#match-detail");
 const matchWarning = document.querySelector("#match-warning");
+const matchAlternatives = document.querySelector("#match-alternatives");
+const matchOptions = document.querySelector("#match-options");
 const reviewAddButton = document.querySelector("#review-add");
 const quickAddButton = document.querySelector("#quick-add");
 const reviewPanel = document.querySelector("#review-panel");
@@ -37,9 +41,12 @@ const gardenSummary = document.querySelector("#garden-summary");
 const storageKey = "gardensnap.prototype.plants";
 let stream = null;
 let activeCandidate = null;
+let activeCandidates = [];
 let plants = loadPlants();
 let lastScanImageDataUrl = null;
 const focusBox = { x: 0.18, y: 0.12, width: 0.64, height: 0.72 };
+const strongConfidence = 0.55;
+const weakConfidence = 0.25;
 
 const profiles = [
   {
@@ -111,6 +118,7 @@ cancelReviewButton.addEventListener("click", closeReview);
 populateQuickSpecies();
 renderWeather();
 renderPlants();
+renderProviderStatus();
 
 async function startCamera() {
   showCameraOverlay(true, "Starting camera");
@@ -307,37 +315,61 @@ async function identifyFromImage(payload) {
       throw new Error(result.error || "No plant match found.");
     }
 
-    showCandidate(result.candidates[0], payload);
+    showCandidates(result.candidates, payload);
   } catch (error) {
     if (Number.isInteger(payload.demoIndex)) {
-      showCandidate(demoCandidateFor(payload));
+      showCandidates([demoCandidateFor(payload)], payload);
       matchDetail.textContent = `Demo fallback because local ID failed: ${error.message}`;
     } else {
       activeCandidate = null;
+      activeCandidates = [];
       detectionBox.hidden = true;
       scanResult.hidden = false;
+      matchEyebrow.textContent = "No match";
       matchName.textContent = "No match";
       matchDetail.textContent = error.message;
       matchWarning.hidden = true;
+      matchAlternatives.hidden = true;
+      reviewAddButton.disabled = true;
+      reviewAddButton.textContent = "Add plant";
     }
   } finally {
     setIdentifying(false);
   }
 }
 
-function showCandidate(candidate, payload) {
-  activeCandidate = normalizeCandidate(candidate);
-  activeCandidate.trainingSample = payload?.imageDataUrl ? {
+function showCandidates(candidates, payload) {
+  const trainingSample = payload?.imageDataUrl ? {
     cropImageDataUrl: payload.imageDataUrl,
     fullImageDataUrl: payload.fullImageDataUrl || null,
     capturedAt: new Date().toISOString()
   } : null;
+  activeCandidates = candidates.map((candidate) => ({
+    ...normalizeCandidate(candidate),
+    trainingSample
+  }));
+  selectCandidate(0);
+
+  if (payload?.imageDataUrl && !Number.isInteger(payload.demoIndex)) {
+    freezeFeedForReview();
+  }
+}
+
+function selectCandidate(index) {
+  activeCandidate = activeCandidates[index];
   showCameraOverlay(false);
   renderDetectionBox(activeCandidate);
   scanGuide.hidden = Boolean(activeCandidate.observationBox);
+  matchEyebrow.textContent = confidenceHeading(activeCandidate);
   matchName.textContent = activeCandidate.profile.commonName;
-  matchDetail.textContent = `${Math.round(activeCandidate.confidence * 100)}% confidence from ${activeCandidate.metadata.providerName}`;
-  matchWarning.hidden = activeCandidate.metadata.source !== "local-demo";
+  matchDetail.textContent = `${confidencePercent(activeCandidate)} confidence from ${activeCandidate.metadata.providerName}`;
+  matchWarning.textContent = confidenceWarning(activeCandidate);
+  matchWarning.hidden = !matchWarning.textContent;
+  reviewAddButton.disabled = false;
+  reviewAddButton.textContent = activeCandidate.confidence < weakConfidence && activeCandidate.metadata.source !== "quick-add"
+    ? "Use anyway"
+    : "Add plant";
+  renderCandidateOptions(index);
   scanResult.hidden = false;
 }
 
@@ -354,10 +386,24 @@ function normalizeCandidate(candidate) {
 }
 
 function setIdentifying(isIdentifying) {
-  captureButton.disabled = isIdentifying || (!stream && !camera.videoWidth);
+  captureButton.disabled = isIdentifying || !stream || !camera.videoWidth;
   demoScanButton.disabled = isIdentifying;
   captureButton.textContent = isIdentifying ? "Scanning" : "Scan";
   demoScanButton.textContent = isIdentifying ? "Scanning" : "Demo test";
+}
+
+async function renderProviderStatus() {
+  try {
+    const response = await fetch("/api/status", { cache: "no-store" });
+    const status = await response.json();
+    const provider = status.plantIdProvider === "plantnet" ? "Pl@ntNet" : status.plantIdProvider;
+    providerStatus.textContent = `ID: ${provider}`;
+    providerStatus.classList.toggle("provider-live", status.plantIdProvider === "plantnet" && status.hasPlantNetKey);
+    providerStatus.classList.toggle("provider-demo", status.plantIdProvider !== "plantnet" || !status.hasPlantNetKey);
+  } catch {
+    providerStatus.textContent = "ID: unknown";
+    providerStatus.classList.add("provider-demo");
+  }
 }
 
 function cameraErrorMessage(error) {
@@ -413,6 +459,7 @@ function freezeFeedForReview() {
 function openQuickAdd() {
   quickSpeciesInput.value = "0";
   activeCandidate = quickAddCandidate(profiles[0]);
+  activeCandidates = [activeCandidate];
   detectionBox.hidden = true;
   scanResult.hidden = true;
   prepareReview("quick");
@@ -747,12 +794,65 @@ function renderDetectionBox(candidate) {
   }
 
   const box = candidate.observationBox;
+  detectionBox.classList.toggle("is-weak-match", candidate.confidence < strongConfidence);
   detectionBox.style.left = `${box.x * 100}%`;
   detectionBox.style.top = `${box.y * 100}%`;
   detectionBox.style.width = `${box.width * 100}%`;
   detectionBox.style.height = `${box.height * 100}%`;
-  detectionLabel.textContent = candidate.profile.commonName;
+  detectionLabel.textContent = candidate.confidence < strongConfidence
+    ? `Maybe ${candidate.profile.commonName}`
+    : candidate.profile.commonName;
   detectionBox.hidden = false;
+}
+
+function renderCandidateOptions(selectedIndex) {
+  matchOptions.replaceChildren(...activeCandidates.slice(0, 5).map((candidate, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "match-option";
+    button.disabled = index === selectedIndex;
+    button.textContent = `${candidate.profile.commonName} (${confidencePercent(candidate)})`;
+    button.addEventListener("click", () => selectCandidate(index));
+    return button;
+  }));
+
+  matchAlternatives.hidden = activeCandidates.length <= 1;
+}
+
+function confidenceHeading(candidate) {
+  if (candidate.metadata.source === "local-demo") {
+    return "Demo test";
+  }
+
+  if (candidate.confidence >= strongConfidence) {
+    return "Likely match";
+  }
+
+  if (candidate.confidence >= weakConfidence) {
+    return "Possible match";
+  }
+
+  return "Low-confidence match";
+}
+
+function confidenceWarning(candidate) {
+  if (candidate.metadata.source === "local-demo") {
+    return "Demo test only. Use Scan for real Pl@ntNet identification.";
+  }
+
+  if (candidate.confidence < weakConfidence) {
+    return "Low confidence. Try a closer, centered shot of leaves or flowers before saving.";
+  }
+
+  if (candidate.confidence < strongConfidence) {
+    return "Possible match. Confirm the plant before saving.";
+  }
+
+  return "";
+}
+
+function confidencePercent(candidate) {
+  return `${Math.round(candidate.confidence * 100)}%`;
 }
 
 function demoCandidateFor(payload) {

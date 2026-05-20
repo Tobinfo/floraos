@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>GardenSnap Prototype</title>
+    <title>floraos</title>
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
@@ -33,14 +33,19 @@
           <button class="primary-button" id="start-camera" type="button">Camera feed on</button>
           <button class="secondary-button" id="capture" type="button" disabled>Scan</button>
           <button class="ghost-button" id="demo-scan" type="button">Demo test</button>
+          <div class="provider-status" id="provider-status">ID: checking</div>
         </div>
 
         <div class="scan-result" id="scan-result" hidden>
           <div>
-            <p class="eyebrow">Likely match</p>
+            <p class="eyebrow" id="match-eyebrow">Likely match</p>
             <h1 id="match-name">Hosta</h1>
             <p id="match-detail">91% confidence</p>
             <p class="match-warning" id="match-warning" hidden>Demo ID only. Connect a real plant ID provider for accurate results.</p>
+            <div class="match-alternatives" id="match-alternatives" hidden>
+              <p class="eyebrow">Other possibilities</p>
+              <div class="match-options" id="match-options"></div>
+            </div>
           </div>
           <button class="primary-button" id="review-add" type="button">Add plant</button>
         </div>
