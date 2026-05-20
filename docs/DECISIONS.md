@@ -78,9 +78,9 @@ Reason: Manual entries are often the highest-quality labels because many users a
 
 ## 2026-05-20: Walking Mode Observation Flash
 
-Decision: In walking mode, the camera feed does not need to freeze every time the app captures an observation. Instead, when the plant is framed well enough, the app should snap a frame and briefly flash or otherwise confirm that it saw the plant.
+Decision: In walking mode, flash-only capture is only for plants already in the user's saved/previously identified group. First-time or uncertain IDs should freeze the captured frame for confirmation before saving or giving plant-specific guidance.
 
-Reason: The user needs feedback that a photo was captured, but freezing the camera repeatedly would make garden/greenhouse walking mode feel clumsy.
+Reason: The user needs feedback that a photo was captured, but first-time IDs need deliberate confirmation. Known plants can be logged more fluidly because the app is matching against the user's existing garden.
 
 ## 2026-05-20: Probe Direction
 

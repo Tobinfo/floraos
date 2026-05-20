@@ -28,7 +28,7 @@
 - Saved plants now include the provider metadata and scan crop needed to become future training data.
 - Low-confidence ID plan: do not spend extra Pl@ntNet calls immediately. First ask the user to retry, collect three more camera photos locally, pick the strongest photo client/server-side, send only the best one to the real ID API, and keep the other photos only after user confirmation/consent for the future training repository.
 - Confirmed plant data plan: after any confirmed ID, including manual entry, ask the user whether they want to help the app recognize that plant in the future. If they agree, collect additional photos such as whole plant, leaf close-up, flower/fruit, stem, and setting.
-- Observation rule: the app should not give plant-specific care or ID information without a current photo/observation first. Walking mode can keep the camera feed live, but it should still snap a frame when the plant is inside the focus box and flash the screen so the user knows the app saw it.
+- Observation rule: the app should not give plant-specific care or ID information without a current photo/observation first. First-time or uncertain IDs freeze the captured frame for confirmation. Flash-only capture is reserved for plants already in the user's saved/previously identified group.
 - No-subscription water probe direction: support Wi-Fi gateways such as Ecowitt WH51 with GW1100/GW2000, Bluetooth plant sensors such as Mi Flora/Flower Care for pots, and later ESP32 DIY probes for custom beds.
 - If this chat context closes, reopen `C:\dev\plant watering` and ask Codex to read `PROJECT_CONTEXT.md`, `docs/NEXT_STEPS.md`, and `docs/DECISIONS.md`.
 
@@ -54,4 +54,4 @@
 7. Add an explicit user-facing consent setting for saving scan crops as training data.
 8. Build the low-confidence retry flow: show `Retry?`, capture three additional photos without API calls, score image quality, submit the best image, then save the confirmed set for the repository.
 9. Change quick/manual entry so it still starts from or attaches to an observation photo before the app gives care guidance.
-10. Add a walking-mode capture flash when the app snaps an observation without freezing the live feed.
+10. Add a walking-mode capture flash only for already-known saved plants; first-time IDs should freeze for review.
