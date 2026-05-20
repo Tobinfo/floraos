@@ -226,7 +226,10 @@
             <input id="id-only-place" type="text" autocomplete="off" placeholder="Optional">
           </label>
         </div>
-        <p class="quality-note">No location lookup is made. These fields are saved only if you save the best photo.</p>
+        <div class="scan-actions">
+          <button class="ghost-button compact-button" id="id-only-location-once" type="button">Use location once</button>
+        </div>
+        <p class="quality-note" id="id-only-location-status">No location lookup is made. ZIP/place and one-time device location are saved only if you save the best photo.</p>
         <ol class="training-progress" id="id-only-progress" aria-label="ID only photo progress">
           <li data-step="id-photo-1"><span>Photo 1</span><strong>Needed</strong></li>
           <li data-step="id-photo-2"><span>Photo 2</span><strong>Needed</strong></li>

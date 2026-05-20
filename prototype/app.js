@@ -75,6 +75,8 @@ const idOnlyProgress = document.querySelector("#id-only-progress");
 const idOnlyQuality = document.querySelector("#id-only-quality");
 const idOnlyZipInput = document.querySelector("#id-only-zip");
 const idOnlyPlaceInput = document.querySelector("#id-only-place");
+const idOnlyLocationOnceButton = document.querySelector("#id-only-location-once");
+const idOnlyLocationStatus = document.querySelector("#id-only-location-status");
 const idOnlyTakeButton = document.querySelector("#id-only-take");
 const idOnlyCancelButton = document.querySelector("#id-only-cancel");
 const idOnlyGalleryDialog = document.querySelector("#id-only-gallery");
@@ -224,6 +226,7 @@ morePhotosDoneButton.addEventListener("click", closeMorePhotosRequest);
 idOnlyTakeButton.addEventListener("click", captureIdOnlyPhoto);
 idOnlyCancelButton.addEventListener("click", closeIdOnlyCapture);
 idOnlyGalleryCloseButton.addEventListener("click", closeIdOnlyGallery);
+idOnlyLocationOnceButton.addEventListener("click", requestIdOnlyLocationOnce);
 photoLibraryCloseButton.addEventListener("click", closePhotoLibrary);
 photoLibraryDialog.addEventListener("click", (event) => {
   if (event.target === photoLibraryDialog) {
@@ -982,9 +985,11 @@ function cameraErrorMessage(error) {
 function openIdOnlyCapture() {
   idOnlyCaptures = [];
   isIdOnlyResult = false;
-  activeIdOnlyGalleryCandidate = null;
   activeIdOnlyLocation = { zip: "", placeNote: "" };
+  activeIdOnlyGalleryCandidate = null;
   idOnlySavePhotoButton.hidden = true;
+  idOnlyLocationStatus.textContent = "No location lookup is made. ZIP/place and one-time device location are saved only if you save the best photo.";
+  idOnlyLocationOnceButton.disabled = false;
   closeReview();
   scanResult.hidden = true;
   knownPlantPopover.hidden = true;
@@ -996,6 +1001,41 @@ function openIdOnlyCapture() {
   if (!stream) {
     startCamera();
   }
+}
+
+function requestIdOnlyLocationOnce() {
+  if (!navigator.geolocation) {
+    idOnlyLocationStatus.textContent = "Device location is not available in this browser.";
+    return;
+  }
+
+  idOnlyLocationOnceButton.disabled = true;
+  idOnlyLocationStatus.textContent = "Requesting one-time device location.";
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      activeIdOnlyLocation = {
+        ...activeIdOnlyLocation,
+        ...idOnlyLocationFromInputs(),
+        coordinates: {
+          latitude: roundCoordinate(position.coords.latitude),
+          longitude: roundCoordinate(position.coords.longitude),
+          accuracyMeters: Math.round(position.coords.accuracy || 0),
+          capturedAt: new Date().toISOString()
+        }
+      };
+      idOnlyLocationStatus.textContent = `One-time location captured near ${activeIdOnlyLocation.coordinates.latitude}, ${activeIdOnlyLocation.coordinates.longitude}. Saved only if you save the best photo.`;
+      idOnlyLocationOnceButton.disabled = false;
+    },
+    () => {
+      idOnlyLocationStatus.textContent = "Location was not saved. You can still use ZIP or place note.";
+      idOnlyLocationOnceButton.disabled = false;
+    },
+    {
+      enableHighAccuracy: false,
+      maximumAge: 0,
+      timeout: 10000
+    }
+  );
 }
 
 async function captureIdOnlyPhoto() {
@@ -1033,7 +1073,10 @@ async function identifyBestIdOnlyCapture() {
     return;
   }
 
-  activeIdOnlyLocation = idOnlyLocationFromInputs();
+  activeIdOnlyLocation = {
+    ...activeIdOnlyLocation,
+    ...idOnlyLocationFromInputs()
+  };
   idOnlyCaptureDialog.hidden = true;
   lastScanImageDataUrl = bestCapture.previewDataUrl;
   lastScanCropDataUrl = bestCapture.imageDataUrl;
@@ -1056,6 +1099,10 @@ function idOnlyLocationFromInputs() {
     zip: /^\d{5}$/.test(zip) ? zip : "",
     placeNote: idOnlyPlaceInput.value.trim()
   };
+}
+
+function roundCoordinate(value) {
+  return Math.round(Number(value) * 10000) / 10000;
 }
 
 function bestIdOnlyCapture() {
@@ -1167,7 +1214,10 @@ function idOnlyGalleryTileFor(photo) {
   const confidence = Number.isFinite(photo.confidence)
     ? `${Math.round(photo.confidence * 100)}%`
     : "unknown";
-  const location = [photo.seenLocation?.zip, photo.seenLocation?.placeNote]
+  const coordinates = photo.seenLocation?.coordinates
+    ? `${photo.seenLocation.coordinates.latitude}, ${photo.seenLocation.coordinates.longitude}`
+    : "";
+  const location = [photo.seenLocation?.zip, photo.seenLocation?.placeNote, coordinates]
     .filter(Boolean)
     .join(", ");
   meta.textContent = `${formatPhotoDate(photo.savedAt || photo.capturedAt)} - ${confidence} from ${photo.providerName || "provider"}${location ? ` - ${location}` : ""}`;
@@ -2334,7 +2384,15 @@ function sanitizeIdOnlyGalleryPhoto(photo) {
     quality: photo.quality || null,
     seenLocation: {
       zip: /^\d{5}$/.test(photo.seenLocation?.zip || "") ? photo.seenLocation.zip : "",
-      placeNote: photo.seenLocation?.placeNote || ""
+      placeNote: photo.seenLocation?.placeNote || "",
+      coordinates: photo.seenLocation?.coordinates
+        ? {
+          latitude: roundCoordinate(photo.seenLocation.coordinates.latitude),
+          longitude: roundCoordinate(photo.seenLocation.coordinates.longitude),
+          accuracyMeters: Math.round(photo.seenLocation.coordinates.accuracyMeters || 0),
+          capturedAt: photo.seenLocation.coordinates.capturedAt || photo.capturedAt || null
+        }
+        : null
     }
   };
 }

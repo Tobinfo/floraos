@@ -27,7 +27,7 @@ Suggested tables:
 - Keep per-user export.
 - Treat manual labels as high-value training labels.
 - On account deletion, delete user records and image objects.
-- ID-only ZIP/place note must be manual input only unless the user explicitly opts into a future location lookup. No dropdown or geocoding API is required for the first version.
+- ID-only ZIP/place note are manual inputs. One-time browser device location can be saved with explicit user permission, but no dropdown, reverse geocoding, or location lookup API is required for the first version.
 
 ## Recognition Order
 

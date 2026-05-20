@@ -130,7 +130,7 @@ Decision: Plants outside the user's garden should use a separate ID-only flow. T
 
 Reason: Users may want to identify wild, public, neighbor, nursery, or house plants without creating a garden record. Separating this path keeps the main garden list clean and avoids unnecessary tracking.
 
-Implementation note: The first best-photo score uses sharpness, usable brightness, contrast, and plant-like color/texture. Optional ZIP and place note are manual fields only and do not call a location API.
+Implementation note: The first best-photo score uses sharpness, usable brightness, contrast, and plant-like color/texture. Optional ZIP and place note are manual fields only. The user can request one-time browser device location, but the app does not call reverse geocoding or a location lookup API.
 
 Decision: After ID-only identification, the user can optionally save the best crop to a personal ID gallery.
 

@@ -52,7 +52,7 @@
 - `docs/HOSTED_DATA_PLAN.md` captures the first hosted database/object-storage shape for plant records, crop photos, care logs, weather snapshots, and recognition events.
 - ID-only mode is for plants outside the user's garden. It captures three plant-box photos, scores them locally, sends only the best crop to Pl@ntNet, and does not add a plant card or care tracking.
 - ID-only best-photo scoring uses sharpness, usable brightness, contrast, and plant-like color/texture inside the crop.
-- ID-only results can optionally save the best crop to a personal ID gallery. Optional ZIP/place note fields are manual only; no location lookup or location API is used.
+- ID-only results can optionally save the best crop to a personal ID gallery. Optional ZIP/place note fields are manual only, and the user can also request one-time browser device location. No reverse geocoding or location lookup API is used.
 - Product/pricing ideas are tracked in `docs/IDEAS.md`.
 - No-subscription water probe direction: support Wi-Fi gateways such as Ecowitt WH51 with GW1100/GW2000, Bluetooth plant sensors such as Mi Flora/Flower Care for pots, and later ESP32 DIY probes for custom beds.
 - If this chat context closes, reopen `C:\dev\plant watering` and ask Codex to read `PROJECT_CONTEXT.md`, `docs/NEXT_STEPS.md`, and `docs/DECISIONS.md`.
