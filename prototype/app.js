@@ -88,6 +88,8 @@ let pendingTrainingPlantId = null;
 let pendingTrainingPhotos = [];
 let pendingKnownPlantId = null;
 let pendingMorePhotosCount = 0;
+let pendingProviderFallbackPayload = null;
+const photoFeatureCache = new Map();
 const focusBox = { x: 0.18, y: 0.12, width: 0.64, height: 0.72 };
 const strongConfidence = 0.55;
 const weakConfidence = 0.25;
@@ -377,10 +379,20 @@ function cropDataUrl(sourceCanvas, box) {
   return crop.toDataURL("image/jpeg", 0.86);
 }
 
-async function identifyFromImage(payload) {
+async function identifyFromImage(payload, options = {}) {
   setIdentifying(true);
 
   try {
+    if (!options.skipLocalRepository) {
+      const localMatch = await localPlantMatchFor(payload);
+      if (localMatch) {
+        pendingProviderFallbackPayload = payload;
+        showKnownPlantRecognition(localMatch.plant, localMatch.candidate);
+        return;
+      }
+    }
+
+    pendingProviderFallbackPayload = null;
     const response = await fetch("/api/identify", {
       method: "POST",
       headers: {
@@ -434,6 +446,7 @@ function showCandidates(candidates, payload) {
     trainingSample
   }));
 
+  pendingProviderFallbackPayload = null;
   const knownPlant = knownPlantFor(activeCandidates[0]);
   if (knownPlant && payload?.imageDataUrl && !Number.isInteger(payload.demoIndex)) {
     showKnownPlantRecognition(knownPlant, activeCandidates[0]);
@@ -471,6 +484,103 @@ function selectCandidate(index) {
   scanResult.hidden = false;
 }
 
+async function localPlantMatchFor(payload) {
+  const recognition = window.GardeninPhotoRecognition;
+  if (!recognition || !payload?.imageDataUrl || plants.length === 0) {
+    return null;
+  }
+
+  const queryFeature = await featureForPhoto(payload.imageDataUrl);
+  if (!queryFeature) {
+    return null;
+  }
+
+  const records = [];
+  for (const plant of plants) {
+    const photoUrls = photoDataUrlsForPlant(plant).slice(-24);
+    if (photoUrls.length < 3) {
+      continue;
+    }
+
+    const features = [];
+    for (const photoUrl of photoUrls) {
+      const feature = await featureForPhoto(photoUrl);
+      if (feature) {
+        features.push(feature);
+      }
+    }
+
+    records.push({
+      plantId: plant.id,
+      features
+    });
+  }
+
+  const match = recognition.matchPlant(queryFeature, records, {
+    minimumSamples: 3,
+    threshold: 0.76,
+    margin: 0.025
+  });
+
+  if (!match) {
+    return null;
+  }
+
+  const plant = plants.find((item) => item.id === match.plantId);
+  if (!plant) {
+    return null;
+  }
+
+  return {
+    plant,
+    candidate: {
+      profile: plant.species,
+      confidence: match.confidence,
+      observationBox: payload.focusBox || focusBox,
+      metadata: {
+        providerName: "gardenin photos",
+        providerPlantID: plant.id,
+        source: "local-repository",
+        sampleCount: match.sampleCount
+      },
+      issues: []
+    }
+  };
+}
+
+async function featureForPhoto(photoUrl) {
+  if (photoFeatureCache.has(photoUrl)) {
+    return photoFeatureCache.get(photoUrl);
+  }
+
+  const featurePromise = window.GardeninPhotoRecognition
+    .featureFromDataUrl(photoUrl)
+    .catch(() => null);
+  photoFeatureCache.set(photoUrl, featurePromise);
+  return featurePromise;
+}
+
+function photoDataUrlsForPlant(plant) {
+  const urls = [];
+  if (plant.trainingSample?.cropImageDataUrl) {
+    urls.push(plant.trainingSample.cropImageDataUrl);
+  }
+
+  for (const photo of plant.trainingPhotos || []) {
+    if (photo.cropImageDataUrl) {
+      urls.push(photo.cropImageDataUrl);
+    }
+  }
+
+  for (const log of plant.careLogs || []) {
+    if (log.observation?.cropImageDataUrl) {
+      urls.push(log.observation.cropImageDataUrl);
+    }
+  }
+
+  return [...new Set(urls)];
+}
+
 function knownPlantFor(candidate) {
   if (!candidate || isNoReliableCandidate(candidate) || candidate.confidence < weakConfidence) {
     return null;
@@ -492,6 +602,7 @@ function knownPlantFor(candidate) {
 
 function showKnownPlantRecognition(plant, candidate) {
   activeCandidate = candidate;
+  activeCandidates = [candidate];
   pendingKnownPlantId = plant.id;
   showCameraOverlay(false);
   scanResult.hidden = true;
@@ -538,12 +649,22 @@ function confirmKnownPlantObservation() {
   renderPlants();
   knownPlantPopover.hidden = true;
   pendingKnownPlantId = null;
+  pendingProviderFallbackPayload = null;
   flashCameraStage();
 }
 
 function rejectKnownPlantObservation() {
   knownPlantPopover.hidden = true;
   pendingKnownPlantId = null;
+  if (activeCandidate?.metadata?.source === "local-repository" && pendingProviderFallbackPayload) {
+    const payload = pendingProviderFallbackPayload;
+    pendingProviderFallbackPayload = null;
+    activeCandidate = null;
+    activeCandidates = [];
+    identifyFromImage(payload, { skipLocalRepository: true });
+    return;
+  }
+
   if (activeCandidate) {
     selectCandidate(0);
     freezeFeedForReview();

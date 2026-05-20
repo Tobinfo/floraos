@@ -106,6 +106,8 @@ Decision: Point-and-ID for already saved plants should become repository-first. 
 
 Reason: The product goal is to identify a user's own plants from gardenin's repository/model before paying for or relying on external plant ID APIs. Every confirmed crop improves that specific user's future recognition path.
 
+Implementation note: The first browser implementation uses a local crop-photo color/texture feature matcher. A saved plant must have at least three crop photos before local recognition can trigger. If the user rejects the local match, the scan falls back to Pl@ntNet.
+
 ## 2026-05-20: Per-Plant Photo Library
 
 Decision: Users should be able to open a saved plant and see every crop-only photo tied to that plant, including the original ID crop, extra training crops, and later recognition observation crops.

@@ -43,6 +43,8 @@
 - Repository recognition loop: saved-plant point-and-ID should keep improving from the user's own labeled crop photos. If recognition fails later, ask `Take more photos for future recognition?` and let the user capture as many plant-box crop photos as they want. These should train or populate gardenin's own user-plant repository so future recognition can happen without an external API call.
 - A first implementation hook exists: after a failed/very low-confidence scan, if saved plants exist, the user can choose `More photos`, select a saved plant, and take unlimited plant-box crop photos for future recognition.
 - Each saved plant now has a Photos view that pulls together its original ID crop, extra training crops, and later recognition/observation crops from local saved data.
+- Scan now checks the user's local crop-photo repository before Pl@ntNet. A saved plant needs at least three crop photos before it is eligible. If the local matcher is confident, the UI flashes and asks `Plant nickname?`; if the user says no, Scan falls through to the real provider.
+- `npm.cmd run check` now includes a repeatable local photo-recognition test using synthetic plant images, proving that the matcher recognizes trained plants with enough photos and refuses plants with fewer than three photos.
 - Product/pricing ideas are tracked in `docs/IDEAS.md`.
 - No-subscription water probe direction: support Wi-Fi gateways such as Ecowitt WH51 with GW1100/GW2000, Bluetooth plant sensors such as Mi Flora/Flower Care for pots, and later ESP32 DIY probes for custom beds.
 - If this chat context closes, reopen `C:\dev\plant watering` and ask Codex to read `PROJECT_CONTEXT.md`, `docs/NEXT_STEPS.md`, and `docs/DECISIONS.md`.
@@ -71,7 +73,7 @@
 9. Add a walking-mode capture flash only for already-known saved plants; first-time IDs should freeze for review.
 10. Add a user setting to change photo-training consent after first choice.
 11. Add a real hosted database/object store so crop images and training photos survive across devices and browser resets.
-12. Improve saved-plant recognition beyond species matching by comparing user training photos/embeddings once a real repository/model exists.
-13. Add a true repository/model matcher that uses saved plant training photos before calling Pl@ntNet.
+12. Replace the first local color/texture matcher with stronger embeddings or a real model once enough labeled crop photos exist.
+13. Add visible diagnostics for local recognition: photo count, match score, and why a plant was or was not eligible.
 14. Use Perenual plant details to enrich saved plant care profiles after ID/manual confirmation.
 15. Add per-photo delete/export controls and a user-visible data settings screen.

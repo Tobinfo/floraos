@@ -5,6 +5,6 @@
   "description": "Laptop-camera prototype and iOS scaffold for GardenSnap.",
   "scripts": {
     "start": "node scripts/serve-prototype.js",
-    "check": "node --check prototype/app.js && node --check scripts/serve-prototype.js && node --check scripts/plant-id-provider.js && node --check scripts/perenual-provider.js"
+    "check": "node --check prototype/app.js && node --check prototype/photo-recognition.js && node --check scripts/serve-prototype.js && node --check scripts/plant-id-provider.js && node --check scripts/perenual-provider.js && node --check scripts/test-photo-recognition.js && node scripts/test-photo-recognition.js"
   }
 }
