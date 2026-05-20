@@ -39,6 +39,8 @@
 - After saving a confirmed plant with photo consent enabled, the browser asks `Help gardenin recognize Plant Nickname in the future?` and can capture `Take 1` / `Take 2` plant-box crop photos into the plant's local training set.
 - Saved-plant recognition is implemented locally in the browser: if a scan returns a usable species match for an already saved plant, the camera flashes and asks `Plant nickname?` instead of freezing into the first-time add flow. Confirming it logs an observation with a plant-box crop only.
 - Training capture now gives feedback for all three photos: the original scan is shown as saved, then `Take 1` and `Take 2` update as each extra plant-box crop is captured.
+- Repository recognition loop: saved-plant point-and-ID should keep improving from the user's own labeled crop photos. If recognition fails later, ask `Take more photos for future recognition?` and let the user capture as many plant-box crop photos as they want. These should train or populate gardenin's own user-plant repository so future recognition can happen without an external API call.
+- A first implementation hook exists: after a failed/very low-confidence scan, if saved plants exist, the user can choose `More photos`, select a saved plant, and take unlimited plant-box crop photos for future recognition.
 - No-subscription water probe direction: support Wi-Fi gateways such as Ecowitt WH51 with GW1100/GW2000, Bluetooth plant sensors such as Mi Flora/Flower Care for pots, and later ESP32 DIY probes for custom beds.
 - If this chat context closes, reopen `C:\dev\plant watering` and ask Codex to read `PROJECT_CONTEXT.md`, `docs/NEXT_STEPS.md`, and `docs/DECISIONS.md`.
 
@@ -67,3 +69,4 @@
 10. Add a user setting to change photo-training consent after first choice.
 11. Add a real hosted database/object store so crop images and training photos survive across devices and browser resets.
 12. Improve saved-plant recognition beyond species matching by comparing user training photos/embeddings once a real repository/model exists.
+13. Add a true repository/model matcher that uses saved plant training photos before calling Pl@ntNet.

@@ -100,6 +100,12 @@ Decision: When a scan matches a species already saved in the user's garden with 
 
 Reason: Previously identified plants should feel like recognition, not re-entry. Confirming the prompt logs an observation crop for that saved plant while keeping walking mode fluid.
 
+## 2026-05-20: Repository-First Recognition Loop
+
+Decision: Point-and-ID for already saved plants should become repository-first. If gardenin fails to recognize a saved plant on a later day, ask `Take more photos for future recognition?` and allow unlimited plant-box crop capture for that plant.
+
+Reason: The product goal is to identify a user's own plants from gardenin's repository/model before paying for or relying on external plant ID APIs. Every confirmed crop improves that specific user's future recognition path.
+
 ## 2026-05-20: Walking Mode Observation Flash
 
 Decision: In walking mode, flash-only capture is only for plants already in the user's saved/previously identified group. First-time or uncertain IDs should freeze the captured frame for confirmation before saving or giving plant-specific guidance.

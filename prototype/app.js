@@ -27,6 +27,7 @@ const matchOptions = document.querySelector("#match-options");
 const reviewAddButton = document.querySelector("#review-add");
 const retryScanButton = document.querySelector("#retry-scan");
 const manualFromScanButton = document.querySelector("#manual-from-scan");
+const morePhotosFromScanButton = document.querySelector("#more-photos-from-scan");
 const quickAddButton = document.querySelector("#quick-add");
 const reviewPanel = document.querySelector("#review-panel");
 const reviewSpecies = document.querySelector("#review-species");
@@ -61,6 +62,11 @@ const trainingCaptureTitle = document.querySelector("#training-capture-title");
 const trainingCaptureProgress = document.querySelector("#training-capture-progress");
 const trainingCaptureButton = document.querySelector("#training-capture-button");
 const trainingCaptureStopButton = document.querySelector("#training-capture-stop");
+const morePhotosRequestDialog = document.querySelector("#more-photos-request");
+const morePhotosPlantInput = document.querySelector("#more-photos-plant");
+const morePhotosCount = document.querySelector("#more-photos-count");
+const morePhotosTakeButton = document.querySelector("#more-photos-take");
+const morePhotosDoneButton = document.querySelector("#more-photos-done");
 
 const storageKey = "gardensnap.prototype.plants";
 const photoConsentKey = "gardenin.photoTrainingConsent";
@@ -78,6 +84,7 @@ let photoTrainingConsent = loadPhotoTrainingConsent();
 let pendingTrainingPlantId = null;
 let pendingTrainingPhotos = [];
 let pendingKnownPlantId = null;
+let pendingMorePhotosCount = 0;
 const focusBox = { x: 0.18, y: 0.12, width: 0.64, height: 0.72 };
 const strongConfidence = 0.55;
 const weakConfidence = 0.25;
@@ -156,6 +163,7 @@ demoScanButton.addEventListener("click", () => identifyFromImage({
 reviewAddButton.addEventListener("click", openReview);
 retryScanButton.addEventListener("click", retryScan);
 manualFromScanButton.addEventListener("click", openManualFromScan);
+morePhotosFromScanButton.addEventListener("click", openMorePhotosFromScan);
 knownPlantYesButton.addEventListener("click", confirmKnownPlantObservation);
 knownPlantNoButton.addEventListener("click", rejectKnownPlantObservation);
 quickAddButton.addEventListener("click", openQuickAdd);
@@ -169,6 +177,8 @@ trainingRequestYesButton.addEventListener("click", startTrainingPhotoFlow);
 trainingRequestNoButton.addEventListener("click", closeTrainingRequest);
 trainingCaptureButton.addEventListener("click", captureTrainingPhoto);
 trainingCaptureStopButton.addEventListener("click", closeTrainingCapture);
+morePhotosTakeButton.addEventListener("click", captureMoreRecognitionPhoto);
+morePhotosDoneButton.addEventListener("click", closeMorePhotosRequest);
 
 populateQuickSpecies();
 maybeShowPhotoConsent();
@@ -399,6 +409,7 @@ async function identifyFromImage(payload) {
       reviewAddButton.textContent = "Add plant";
       retryScanButton.hidden = false;
       manualFromScanButton.hidden = !lastScanCropDataUrl;
+      morePhotosFromScanButton.hidden = !lastScanCropDataUrl || plants.length === 0;
     }
   } finally {
     setIdentifying(false);
@@ -450,6 +461,7 @@ function selectCandidate(index) {
     : "Add plant";
   retryScanButton.hidden = !isNoReliableMatch;
   manualFromScanButton.hidden = !isNoReliableMatch || !lastScanCropDataUrl;
+  morePhotosFromScanButton.hidden = !isNoReliableMatch || !lastScanCropDataUrl || plants.length === 0;
   renderCandidateOptions(index);
   scanResult.hidden = false;
 }
@@ -521,6 +533,7 @@ function confirmKnownPlantObservation() {
   renderPlants();
   knownPlantPopover.hidden = true;
   pendingKnownPlantId = null;
+  flashCameraStage();
 }
 
 function rejectKnownPlantObservation() {
@@ -706,6 +719,7 @@ function retryScan() {
   detectionBox.hidden = true;
   retryScanButton.hidden = true;
   manualFromScanButton.hidden = true;
+  morePhotosFromScanButton.hidden = true;
   startCamera();
 }
 
@@ -725,6 +739,65 @@ function openManualFromScan() {
   activeCandidates = [activeCandidate];
   detectionBox.hidden = true;
   prepareReview("manual-scan");
+}
+
+function openMorePhotosFromScan() {
+  if (!lastScanCropDataUrl || plants.length === 0) {
+    return;
+  }
+
+  populateMorePhotosPlantOptions();
+  pendingMorePhotosCount = 0;
+  morePhotosCount.textContent = "0 photos added this session.";
+  morePhotosRequestDialog.hidden = false;
+}
+
+function populateMorePhotosPlantOptions() {
+  morePhotosPlantInput.replaceChildren(...plants.map((plant) => {
+    const option = document.createElement("option");
+    option.value = plant.id;
+    option.textContent = plant.nickname;
+    return option;
+  }));
+}
+
+async function captureMoreRecognitionPhoto() {
+  const plant = plants.find((item) => item.id === morePhotosPlantInput.value);
+  if (!plant) {
+    return;
+  }
+
+  if (!stream || !camera.videoWidth) {
+    await startCamera();
+    return;
+  }
+
+  snapshot.width = camera.videoWidth;
+  snapshot.height = camera.videoHeight;
+  const context = snapshot.getContext("2d");
+  context.drawImage(camera, 0, 0, snapshot.width, snapshot.height);
+  plant.trainingPhotos = [
+    ...(plant.trainingPhotos || []),
+    {
+      cropImageDataUrl: cropDataUrl(snapshot, focusBox),
+      capturedAt: new Date().toISOString(),
+      cropBox: focusBox,
+      fullFrameStored: false,
+      reason: "future-recognition"
+    }
+  ];
+  pendingMorePhotosCount += 1;
+  morePhotosCount.textContent = pendingMorePhotosCount === 1
+    ? "1 photo added this session."
+    : `${pendingMorePhotosCount} photos added this session.`;
+  savePlants();
+  renderPlants();
+  flashCameraStage();
+}
+
+function closeMorePhotosRequest() {
+  morePhotosRequestDialog.hidden = true;
+  pendingMorePhotosCount = 0;
 }
 
 function freezeFeedForReview() {
