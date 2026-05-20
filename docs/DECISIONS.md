@@ -64,6 +64,24 @@ Reason: Extra camera frames are cheap, but API calls and bad IDs are not. Multip
 
 Long-term order: check our own repository/model first, then ask for retry photos, then make real provider calls only when needed, then fall back to manual entry and correction.
 
+## 2026-05-20: Photo Before Advice
+
+Decision: The app should not give plant-specific ID or care guidance without a current observation photo attached to that plant event.
+
+Reason: Photo-first records make the system auditable, improve future training data, and avoid unsupported recommendations. Quick/manual entry can still be fast, but it should attach a photo before turning into guidance.
+
+## 2026-05-20: Training Photos After Confirmation
+
+Decision: After any confirmed plant, including manual entry and high-confidence IDs, ask whether the user wants to help the app recognize the plant in the future. If yes, collect multiple guided photos and save them as a labeled training set after consent.
+
+Reason: Manual entries are often the highest-quality labels because many users already know common plants. The app should not waste that moment; it should turn confirmed knowledge into future recognition data.
+
+## 2026-05-20: Walking Mode Observation Flash
+
+Decision: In walking mode, the camera feed does not need to freeze every time the app captures an observation. Instead, when the plant is framed well enough, the app should snap a frame and briefly flash or otherwise confirm that it saw the plant.
+
+Reason: The user needs feedback that a photo was captured, but freezing the camera repeatedly would make garden/greenhouse walking mode feel clumsy.
+
 ## 2026-05-20: Probe Direction
 
 Decision: Favor no-subscription water probe options first: Wi-Fi gateway probes, Bluetooth plant sensors, and later a simple custom endpoint for ESP32-style DIY probes.
