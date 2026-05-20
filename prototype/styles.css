@@ -383,6 +383,28 @@ h3 {
   gap: 10px;
 }
 
+.weather-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.weather-form label {
+  display: inline;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.weather-form input {
+  min-height: 34px;
+  width: 78px;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
 .weather-pill,
 .status-pill {
   display: inline-flex;
@@ -401,6 +423,33 @@ h3 {
   min-height: 34px;
   padding: 0 12px;
   white-space: nowrap;
+}
+
+.consent-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(21, 25, 20, 0.64);
+}
+
+.consent-panel {
+  display: grid;
+  gap: 14px;
+  width: min(520px, 100%);
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: 0 22px 70px rgba(21, 25, 20, 0.32);
+}
+
+.consent-panel p {
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.42;
 }
 
 .review-panel {
@@ -558,6 +607,15 @@ select {
   .top-actions {
     align-items: stretch;
     flex-direction: column;
+    width: 100%;
+  }
+
+  .weather-form {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .weather-form input {
     width: 100%;
   }
 }

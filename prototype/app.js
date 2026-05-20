@@ -35,15 +35,23 @@ const savePlantButton = document.querySelector("#save-plant");
 const cancelReviewButton = document.querySelector("#cancel-review");
 const plantList = document.querySelector("#plant-list");
 const plantCardTemplate = document.querySelector("#plant-card-template");
+const weatherForm = document.querySelector("#weather-form");
+const weatherZipInput = document.querySelector("#weather-zip");
 const weatherPill = document.querySelector("#weather-pill");
 const gardenSummary = document.querySelector("#garden-summary");
+const photoConsentDialog = document.querySelector("#photo-consent");
+const photoConsentYesButton = document.querySelector("#photo-consent-yes");
+const photoConsentNoButton = document.querySelector("#photo-consent-no");
 
 const storageKey = "gardensnap.prototype.plants";
+const photoConsentKey = "floraos.photoTrainingConsent";
+const weatherZipKey = "floraos.weather.zip";
 let stream = null;
 let activeCandidate = null;
 let activeCandidates = [];
 let plants = loadPlants();
 let lastScanImageDataUrl = null;
+let photoTrainingConsent = loadPhotoTrainingConsent();
 const focusBox = { x: 0.18, y: 0.12, width: 0.64, height: 0.72 };
 const strongConfidence = 0.55;
 const weakConfidence = 0.25;
@@ -99,7 +107,16 @@ const profiles = [
   }
 ];
 
-const forecast = buildDemoForecast();
+let forecast = buildDemoForecast();
+let weatherSnapshot = {
+  source: "demo",
+  place: "Demo forecast",
+  zip: null,
+  current: {
+    temperatureF: forecast[0].highFahrenheit,
+    condition: forecast[0].condition
+  }
+};
 
 cameraReadyButton.addEventListener("click", startCamera);
 startCameraButton.addEventListener("click", toggleCamera);
@@ -114,9 +131,13 @@ quickAddButton.addEventListener("click", openQuickAdd);
 quickSpeciesInput.addEventListener("change", updateQuickAddSpecies);
 savePlantButton.addEventListener("click", savePlant);
 cancelReviewButton.addEventListener("click", closeReview);
+weatherForm.addEventListener("submit", handleWeatherSubmit);
+photoConsentYesButton.addEventListener("click", () => setPhotoTrainingConsent(true));
+photoConsentNoButton.addEventListener("click", () => setPhotoTrainingConsent(false));
 
 populateQuickSpecies();
-renderWeather();
+maybeShowPhotoConsent();
+loadStoredWeather();
 renderPlants();
 renderProviderStatus();
 
@@ -259,7 +280,7 @@ async function captureAndIdentify() {
   lastScanImageDataUrl = dataUrl;
 
   const imageSignature = getImageSignature(context, snapshot.width, snapshot.height);
-  await identifyFromImage({ imageDataUrl: focusedDataUrl, fullImageDataUrl: dataUrl, imageSignature, focusBox });
+  await identifyFromImage({ imageDataUrl: focusedDataUrl, imageSignature, focusBox });
 }
 
 function getImageSignature(context, width, height) {
@@ -341,8 +362,10 @@ async function identifyFromImage(payload) {
 function showCandidates(candidates, payload) {
   const trainingSample = payload?.imageDataUrl ? {
     cropImageDataUrl: payload.imageDataUrl,
-    fullImageDataUrl: payload.fullImageDataUrl || null,
-    capturedAt: new Date().toISOString()
+    capturedAt: new Date().toISOString(),
+    cropBox: payload.focusBox || null,
+    fullFrameStored: false,
+    consentForPersonalRecognition: photoTrainingConsent === "yes"
   } : null;
   activeCandidates = candidates.map((candidate) => ({
     ...normalizeCandidate(candidate),
@@ -404,6 +427,98 @@ async function renderProviderStatus() {
     providerStatus.textContent = "ID: unknown";
     providerStatus.classList.add("provider-demo");
   }
+}
+
+function maybeShowPhotoConsent() {
+  if (photoTrainingConsent) {
+    return;
+  }
+
+  photoConsentDialog.hidden = false;
+}
+
+function setPhotoTrainingConsent(isAllowed) {
+  photoTrainingConsent = isAllowed ? "yes" : "no";
+  localStorage.setItem(photoConsentKey, photoTrainingConsent);
+  photoConsentDialog.hidden = true;
+}
+
+function loadPhotoTrainingConsent() {
+  const stored = localStorage.getItem(photoConsentKey);
+  return stored === "yes" || stored === "no" ? stored : null;
+}
+
+async function handleWeatherSubmit(event) {
+  event.preventDefault();
+  await loadWeatherForZip(weatherZipInput.value);
+}
+
+async function loadStoredWeather() {
+  const storedZip = localStorage.getItem(weatherZipKey);
+  if (!storedZip) {
+    renderWeather();
+    return;
+  }
+
+  weatherZipInput.value = storedZip;
+  await loadWeatherForZip(storedZip);
+}
+
+async function loadWeatherForZip(zipInput) {
+  const zip = String(zipInput || "").trim();
+  if (!/^\d{5}$/.test(zip)) {
+    weatherPill.textContent = "Enter ZIP";
+    return;
+  }
+
+  weatherPill.textContent = "Weather loading";
+
+  try {
+    const response = await fetch(`/api/weather?zip=${encodeURIComponent(zip)}`, {
+      cache: "no-store"
+    });
+    const result = await response.json();
+
+    if (!response.ok || !Array.isArray(result.forecast)) {
+      throw new Error(result.error || "Weather unavailable.");
+    }
+
+    forecast = result.forecast.map((day) => ({
+      ...day,
+      date: new Date(`${day.date}T00:00:00`)
+    }));
+    weatherSnapshot = {
+      source: result.source,
+      place: result.place,
+      zip: result.zip,
+      current: result.current || {
+        temperatureF: forecast[0].highFahrenheit,
+        condition: forecast[0].condition
+      }
+    };
+    localStorage.setItem(weatherZipKey, result.zip);
+    renderWeather();
+    renderPlants();
+  } catch (error) {
+    weatherPill.textContent = "Weather unavailable";
+  }
+}
+
+function weatherForPlantRecord() {
+  const today = forecast[0];
+  return {
+    source: weatherSnapshot.source,
+    zip: weatherSnapshot.zip,
+    place: weatherSnapshot.place,
+    capturedAt: new Date().toISOString(),
+    current: weatherSnapshot.current,
+    today: today ? {
+      highFahrenheit: today.highFahrenheit,
+      lowFahrenheit: today.lowFahrenheit,
+      precipitationInches: today.precipitationInches,
+      condition: today.condition
+    } : null
+  };
 }
 
 function cameraErrorMessage(error) {
@@ -537,6 +652,11 @@ function savePlant() {
       providerPlantID: activeCandidate.metadata.providerPlantID || null
     },
     trainingSample: activeCandidate.trainingSample,
+    photoUse: {
+      personalRecognition: photoTrainingConsent === "yes",
+      fullFrameStored: false
+    },
+    weatherSnapshot: weatherForPlantRecord(),
     dateAdded: new Date().toISOString(),
     locationNote: plantLocationInput.value.trim(),
     setting: plantSettingInput.value,
@@ -905,9 +1025,13 @@ function buildDemoForecast() {
 function renderWeather() {
   const today = forecast[0];
   const rain = forecast.find((day) => day.precipitationInches >= 0.25);
+  const currentTemp = Number.isFinite(weatherSnapshot.current?.temperatureF)
+    ? weatherSnapshot.current.temperatureF
+    : today.highFahrenheit;
+  const prefix = weatherSnapshot.zip ? `${weatherSnapshot.zip}: ` : "";
   weatherPill.textContent = rain
-    ? `${Math.round(today.highFahrenheit)}F now, rain soon`
-    : `${Math.round(today.highFahrenheit)}F now`;
+    ? `${prefix}${Math.round(currentTemp)}F, rain soon`
+    : `${prefix}${Math.round(currentTemp)}F`;
 }
 
 function relativeDay(date) {
@@ -942,12 +1066,46 @@ function startOfDay(date) {
 
 function loadPlants() {
   try {
-    return JSON.parse(localStorage.getItem(storageKey)) || [];
+    const storedPlants = JSON.parse(localStorage.getItem(storageKey)) || [];
+    const sanitizedPlants = storedPlants.map(sanitizePlantRecord);
+    if (JSON.stringify(storedPlants) !== JSON.stringify(sanitizedPlants)) {
+      localStorage.setItem(storageKey, JSON.stringify(sanitizedPlants));
+    }
+    return sanitizedPlants;
   } catch {
     return [];
   }
 }
 
 function savePlants() {
+  plants = plants.map(sanitizePlantRecord);
   localStorage.setItem(storageKey, JSON.stringify(plants));
+}
+
+function sanitizePlantRecord(plant) {
+  if (!plant || typeof plant !== "object") {
+    return plant;
+  }
+
+  const trainingSample = plant.trainingSample
+    ? {
+      cropImageDataUrl: plant.trainingSample.cropImageDataUrl || null,
+      capturedAt: plant.trainingSample.capturedAt || plant.dateAdded || null,
+      cropBox: plant.trainingSample.cropBox || plant.identification?.observationBox || null,
+      fullFrameStored: false,
+      consentForPersonalRecognition: Boolean(
+        plant.trainingSample.consentForPersonalRecognition ||
+        plant.photoUse?.personalRecognition
+      )
+    }
+    : null;
+
+  return {
+    ...plant,
+    trainingSample,
+    photoUse: {
+      ...(plant.photoUse || {}),
+      fullFrameStored: false
+    }
+  };
 }

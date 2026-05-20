@@ -59,6 +59,11 @@
           </div>
           <div class="top-actions">
             <button class="ghost-button compact-button" id="quick-add" type="button">Quick add</button>
+            <form class="weather-form" id="weather-form">
+              <label for="weather-zip">ZIP</label>
+              <input id="weather-zip" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="5" placeholder="ZIP">
+              <button class="ghost-button compact-button" type="submit">Weather</button>
+            </form>
             <div class="weather-pill" id="weather-pill">Weather loading</div>
           </div>
         </header>
@@ -116,6 +121,18 @@
         <section class="plant-list" id="plant-list" aria-label="Saved plants"></section>
       </section>
     </main>
+
+    <section class="consent-dialog" id="photo-consent" role="dialog" aria-modal="true" aria-labelledby="photo-consent-title" hidden>
+      <div class="consent-panel">
+        <p class="eyebrow">Photo use</p>
+        <h2 id="photo-consent-title">Can your photos be used to help make floraos better for you?</h2>
+        <p>floraos stores plant-box crops by default, not the full camera frame.</p>
+        <div class="scan-actions">
+          <button class="primary-button" id="photo-consent-yes" type="button">Yes</button>
+          <button class="ghost-button" id="photo-consent-no" type="button">Not now</button>
+        </div>
+      </div>
+    </section>
 
     <template id="plant-card-template">
       <article class="plant-card">
