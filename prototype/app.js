@@ -45,10 +45,20 @@ const photoConsentDialog = document.querySelector("#photo-consent");
 const photoConsentZipInput = document.querySelector("#photo-consent-zip");
 const photoConsentYesButton = document.querySelector("#photo-consent-yes");
 const photoConsentNoButton = document.querySelector("#photo-consent-no");
+const trainingRequestDialog = document.querySelector("#training-request");
+const trainingRequestDetail = document.querySelector("#training-request-detail");
+const trainingRequestYesButton = document.querySelector("#training-request-yes");
+const trainingRequestNoButton = document.querySelector("#training-request-no");
+const trainingCaptureDialog = document.querySelector("#training-capture");
+const trainingPhotoCount = document.querySelector("#training-photo-count");
+const trainingCaptureButton = document.querySelector("#training-capture-button");
+const trainingCaptureStopButton = document.querySelector("#training-capture-stop");
 
 const storageKey = "gardensnap.prototype.plants";
-const photoConsentKey = "floraos.photoTrainingConsent";
-const weatherZipKey = "floraos.weather.zip";
+const photoConsentKey = "gardenin.photoTrainingConsent";
+const legacyPhotoConsentKey = "floraos.photoTrainingConsent";
+const weatherZipKey = "gardenin.weather.zip";
+const legacyWeatherZipKey = "floraos.weather.zip";
 let stream = null;
 let activeCandidate = null;
 let activeCandidates = [];
@@ -57,6 +67,8 @@ let lastScanImageDataUrl = null;
 let lastScanCropDataUrl = null;
 let isFrozenAfterScan = false;
 let photoTrainingConsent = loadPhotoTrainingConsent();
+let pendingTrainingPlantId = null;
+let pendingTrainingPhotos = [];
 const focusBox = { x: 0.18, y: 0.12, width: 0.64, height: 0.72 };
 const strongConfidence = 0.55;
 const weakConfidence = 0.25;
@@ -142,6 +154,10 @@ cancelReviewButton.addEventListener("click", closeReview);
 weatherForm.addEventListener("submit", handleWeatherSubmit);
 photoConsentYesButton.addEventListener("click", () => setPhotoTrainingConsent(true));
 photoConsentNoButton.addEventListener("click", () => setPhotoTrainingConsent(false));
+trainingRequestYesButton.addEventListener("click", startTrainingPhotoFlow);
+trainingRequestNoButton.addEventListener("click", closeTrainingRequest);
+trainingCaptureButton.addEventListener("click", captureTrainingPhoto);
+trainingCaptureStopButton.addEventListener("click", closeTrainingCapture);
 
 populateQuickSpecies();
 maybeShowPhotoConsent();
@@ -470,7 +486,11 @@ async function setPhotoTrainingConsent(isAllowed) {
 }
 
 function loadPhotoTrainingConsent() {
-  const stored = localStorage.getItem(photoConsentKey);
+  const stored = localStorage.getItem(photoConsentKey) || localStorage.getItem(legacyPhotoConsentKey);
+  if (stored === "yes" || stored === "no") {
+    localStorage.setItem(photoConsentKey, stored);
+    localStorage.removeItem(legacyPhotoConsentKey);
+  }
   return stored === "yes" || stored === "no" ? stored : null;
 }
 
@@ -480,12 +500,14 @@ async function handleWeatherSubmit(event) {
 }
 
 async function loadStoredWeather() {
-  const storedZip = localStorage.getItem(weatherZipKey);
+  const storedZip = localStorage.getItem(weatherZipKey) || localStorage.getItem(legacyWeatherZipKey);
   if (!storedZip) {
     renderWeather();
     return;
   }
 
+  localStorage.setItem(weatherZipKey, storedZip);
+  localStorage.removeItem(legacyWeatherZipKey);
   weatherZipInput.value = storedZip;
   await loadWeatherForZip(storedZip);
 }
@@ -692,12 +714,94 @@ function closeReview() {
   reviewPanel.hidden = true;
 }
 
+function maybeAskForTrainingPhotos(plant) {
+  if (photoTrainingConsent !== "yes" || !plant?.trainingSample?.cropImageDataUrl) {
+    return;
+  }
+
+  pendingTrainingPlantId = plant.id;
+  pendingTrainingPhotos = [];
+  trainingRequestDetail.textContent = `Add two more plant-box photos for ${plant.nickname}.`;
+  trainingRequestDialog.hidden = false;
+}
+
+function closeTrainingRequest() {
+  trainingRequestDialog.hidden = true;
+  pendingTrainingPlantId = null;
+  pendingTrainingPhotos = [];
+}
+
+async function startTrainingPhotoFlow() {
+  trainingRequestDialog.hidden = true;
+  pendingTrainingPhotos = [];
+  updateTrainingCaptureText();
+  trainingCaptureDialog.hidden = false;
+  if (!stream) {
+    await startCamera();
+  }
+}
+
+async function captureTrainingPhoto() {
+  if (!pendingTrainingPlantId) {
+    closeTrainingCapture();
+    return;
+  }
+
+  if (!stream || !camera.videoWidth) {
+    await startCamera();
+    return;
+  }
+
+  snapshot.width = camera.videoWidth;
+  snapshot.height = camera.videoHeight;
+  const context = snapshot.getContext("2d");
+  context.drawImage(camera, 0, 0, snapshot.width, snapshot.height);
+  pendingTrainingPhotos.push({
+    cropImageDataUrl: cropDataUrl(snapshot, focusBox),
+    capturedAt: new Date().toISOString(),
+    cropBox: focusBox,
+    fullFrameStored: false
+  });
+
+  if (pendingTrainingPhotos.length >= 2) {
+    saveTrainingPhotos();
+    closeTrainingCapture();
+    return;
+  }
+
+  updateTrainingCaptureText();
+}
+
+function updateTrainingCaptureText() {
+  trainingPhotoCount.textContent = String(Math.min(pendingTrainingPhotos.length + 1, 2));
+}
+
+function saveTrainingPhotos() {
+  const plant = plants.find((item) => item.id === pendingTrainingPlantId);
+  if (!plant) {
+    return;
+  }
+
+  plant.trainingPhotos = [
+    ...(plant.trainingPhotos || []),
+    ...pendingTrainingPhotos
+  ];
+  savePlants();
+  renderPlants();
+}
+
+function closeTrainingCapture() {
+  trainingCaptureDialog.hidden = true;
+  pendingTrainingPlantId = null;
+  pendingTrainingPhotos = [];
+}
+
 function savePlant() {
   if (!activeCandidate) {
     return;
   }
 
-  plants.unshift({
+  const plant = {
     id: crypto.randomUUID(),
     nickname: plantNameInput.value.trim() || suggestedName(activeCandidate.profile),
     species: activeCandidate.profile,
@@ -723,11 +827,13 @@ function savePlant() {
       date: new Date().toISOString()
     })),
     careLogs: []
-  });
+  };
 
+  plants.unshift(plant);
   savePlants();
   renderPlants();
   closeReview();
+  maybeAskForTrainingPhotos(plant);
 }
 
 function suggestedName(profile) {
@@ -1174,6 +1280,12 @@ function sanitizePlantRecord(plant) {
   return {
     ...plant,
     trainingSample,
+    trainingPhotos: (plant.trainingPhotos || []).map((photo) => ({
+      cropImageDataUrl: photo.cropImageDataUrl || null,
+      capturedAt: photo.capturedAt || plant.dateAdded || null,
+      cropBox: photo.cropBox || plant.identification?.observationBox || null,
+      fullFrameStored: false
+    })),
     photoUse: {
       ...(plant.photoUse || {}),
       fullFrameStored: false

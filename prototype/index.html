@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>floraos</title>
+    <title>gardenin</title>
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
@@ -129,8 +129,8 @@
     <section class="consent-dialog" id="photo-consent" role="dialog" aria-modal="true" aria-labelledby="photo-consent-title" hidden>
       <div class="consent-panel">
         <p class="eyebrow">Photo use</p>
-        <h2 id="photo-consent-title">Can your photos be used to help make floraos better for you?</h2>
-        <p>floraos stores plant-box crops by default, not the full camera frame.</p>
+        <h2 id="photo-consent-title">Can your photos be used to help make gardenin better for you?</h2>
+        <p>gardenin stores plant-box crops by default, not the full camera frame.</p>
         <label>
           ZIP for weather
           <input id="photo-consent-zip" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="5" placeholder="Optional">
@@ -138,6 +138,30 @@
         <div class="scan-actions">
           <button class="primary-button" id="photo-consent-yes" type="button">Yes</button>
           <button class="ghost-button" id="photo-consent-no" type="button">Not now</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="consent-dialog" id="training-request" role="dialog" aria-modal="true" aria-labelledby="training-request-title" hidden>
+      <div class="consent-panel">
+        <p class="eyebrow">Improve recognition</p>
+        <h2 id="training-request-title">Help gardenin identify this plant better in the future for you?</h2>
+        <p id="training-request-detail">Add two more plant-box photos after saving.</p>
+        <div class="scan-actions">
+          <button class="primary-button" id="training-request-yes" type="button">Add photos</button>
+          <button class="ghost-button" id="training-request-no" type="button">Skip</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="consent-dialog" id="training-capture" role="dialog" aria-modal="true" aria-labelledby="training-capture-title" hidden>
+      <div class="consent-panel">
+        <p class="eyebrow">Photo <span id="training-photo-count">1</span> of 2</p>
+        <h2 id="training-capture-title">Frame the same plant in the box.</h2>
+        <p>Use a different useful angle, like leaves, flower, fruit, or the full plant.</p>
+        <div class="scan-actions">
+          <button class="primary-button" id="training-capture-button" type="button">Capture photo</button>
+          <button class="ghost-button" id="training-capture-stop" type="button">Done</button>
         </div>
       </div>
     </section>

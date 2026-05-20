@@ -35,6 +35,8 @@
 - First-use prompt now includes ZIP weather entry so the user can set weather context during the same setup moment as photo consent.
 - After a scan freezes, the Scan button becomes Retake so the user is not stuck after the first scan.
 - Very low-confidence IDs are not usable matches. The app should offer retry and manual entry instead of allowing a 0% provider result to be saved as-is.
+- Visible product naming is moving to gardenin. The GitHub remote is `https://github.com/Tobinfo/gardenin.git`; the Render URL is still `https://floraos.onrender.com` until the hosted service/domain is renamed.
+- After saving a confirmed plant with photo consent enabled, the browser asks `Help gardenin identify this plant better in the future for you?` and can capture two more plant-box crop photos into the plant's local training set.
 - No-subscription water probe direction: support Wi-Fi gateways such as Ecowitt WH51 with GW1100/GW2000, Bluetooth plant sensors such as Mi Flora/Flower Care for pots, and later ESP32 DIY probes for custom beds.
 - If this chat context closes, reopen `C:\dev\plant watering` and ask Codex to read `PROJECT_CONTEXT.md`, `docs/NEXT_STEPS.md`, and `docs/DECISIONS.md`.
 
@@ -61,3 +63,4 @@
 8. Change quick/manual entry so it still starts from or attaches to an observation photo before the app gives care guidance.
 9. Add a walking-mode capture flash only for already-known saved plants; first-time IDs should freeze for review.
 10. Add a user setting to change photo-training consent after first choice.
+11. Add a real hosted database/object store so crop images and training photos survive across devices and browser resets.

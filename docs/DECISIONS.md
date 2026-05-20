@@ -88,6 +88,12 @@ Decision: Strip photos to the plant focus box from the beginning. Store the plan
 
 Reason: Cropping reduces faces, rooms, homes, addresses, and unrelated background data. It is the simplest privacy-preserving default while still keeping the plant evidence the app needs.
 
+## 2026-05-20: Post-Save Training Photos
+
+Decision: After a user saves a confirmed plant and has opted into photo use, ask `Help gardenin identify this plant better in the future for you?` If accepted, capture two more plant-box crop photos.
+
+Reason: The best training data comes after confirmation. Asking for two additional crop-only photos builds a stronger labeled set without requiring extra provider calls.
+
 ## 2026-05-20: Walking Mode Observation Flash
 
 Decision: In walking mode, flash-only capture is only for plants already in the user's saved/previously identified group. First-time or uncertain IDs should freeze the captured frame for confirmation before saving or giving plant-specific guidance.
