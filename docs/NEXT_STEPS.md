@@ -62,6 +62,8 @@
 - `/api/identify` now has basic request validation and rate limiting. Free/dev deployments can set `REQUIRE_USER_PLANTNET_API_KEY=true` and make users enter their own Pl@ntNet API key in the Data panel.
 - `docs/FREE_PLANTNET_KEY.md` has the simple user walkthrough for getting and saving a personal Pl@ntNet key.
 - Local recognition events are now persisted and exported so accepted, rejected, provider-result, and error outcomes can later sync into hosted `recognition_events`.
+- Garden Scan now uses the main `Scan` button for all three photos. The progress panel shows photo status, but there is no second capture button.
+- The Data panel can import a gardenin JSON export so crop photos and recognition events can move into a new browser/profile/prototype while hosted storage is still pending.
 - No-subscription water probe direction: support Wi-Fi gateways such as Ecowitt WH51 with GW1100/GW2000, Bluetooth plant sensors such as Mi Flora/Flower Care for pots, and later ESP32 DIY probes for custom beds.
 - If this chat context closes, reopen `C:\dev\plant watering` and ask Codex to read `PROJECT_CONTEXT.md`, `docs/NEXT_STEPS.md`, and `docs/DECISIONS.md`.
 

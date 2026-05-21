@@ -191,3 +191,19 @@ Decision: Recognition attempts and outcomes should be first-class records, not o
 Reason: Accepted, rejected, provider-fallback, and error outcomes are needed for debugging, trust, future model training, and hosted sync.
 
 Implementation note: The browser now keeps a capped local `recognitionEvents` list in `prototype/storage-repository.js` and includes it in local export/delete flows. Hosted persistence should move this into the planned `recognition_events` table.
+
+## 2026-05-21: Prototype photo portability
+
+Decision: Until hosted storage exists, exported gardenin JSON is the bridge for moving saved crop photos into a new browser/profile/prototype.
+
+Reason: Saved plant recognition depends on the user's crop-photo library. If that library stays only in one browser origin, testing breaks as soon as the prototype URL, browser profile, or device changes.
+
+Implementation note: The Data panel now supports importing a gardenin export and merging plants, ID-only gallery items, recognition events, consent, and ZIP weather context. API keys are not imported or exported.
+
+## 2026-05-21: One-button Garden Scan
+
+Decision: Garden Scan should use one visible capture control for its three photos.
+
+Reason: The scan flow was creating needless UI confusion by starting with `Scan` and then switching to a second `Take photo` button. The progress panel should explain the sequence, but the main action should remain the main `Scan` button.
+
+Implementation note: The hidden garden-scan take button remains in markup only as a non-visible compatibility hook; the user-facing flow is main `Scan`, then `Scan 2/3`, then `Scan 3/3`.

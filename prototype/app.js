@@ -104,6 +104,9 @@ const plantNetApiKeyInput = document.querySelector("#plantnet-api-key");
 const plantNetKeySaveButton = document.querySelector("#plantnet-key-save");
 const plantNetKeyClearButton = document.querySelector("#plantnet-key-clear");
 const dataExportButton = document.querySelector("#data-export");
+const dataImportInput = document.querySelector("#data-import-file");
+const dataImportButton = document.querySelector("#data-import");
+const dataImportStatus = document.querySelector("#data-import-status");
 const dataDeleteButton = document.querySelector("#data-delete");
 
 const repository = window.GardeninStorageRepository.createRepository();
@@ -254,6 +257,7 @@ photoUseDisableButton.addEventListener("click", () => updatePhotoTrainingConsent
 plantNetKeySaveButton.addEventListener("click", savePlantNetApiKeySetting);
 plantNetKeyClearButton.addEventListener("click", clearPlantNetApiKeySetting);
 dataExportButton.addEventListener("click", exportLocalData);
+dataImportButton.addEventListener("click", importLocalData);
 dataDeleteButton.addEventListener("click", deleteLocalData);
 photoLibraryDialog.addEventListener("click", (event) => {
   if (event.target === photoLibraryDialog) {
@@ -406,6 +410,11 @@ function updateFeedStatus() {
 }
 
 async function captureAndIdentify() {
+  if (!gardenScanCaptureDialog.hidden) {
+    await captureGardenScanPhoto();
+    return;
+  }
+
   if (!stream && isFrozenAfterScan) {
     await startCamera();
     return;
@@ -1049,9 +1058,13 @@ async function renderProviderStatus() {
     const canIdentify = isPlantNet && (status.requiresUserPlantNetKey
       ? hasLocalKey
       : status.hasPlantNetKey || hasLocalKey);
-    const keyLabel = status.requiresUserPlantNetKey
-      ? hasLocalKey ? "your key" : "needs your key"
-      : status.hasPlantNetKey ? "server key" : hasLocalKey ? "your key" : "missing key";
+    const keyLabel = hasLocalKey
+      ? "your key"
+      : status.requiresUserPlantNetKey
+        ? "needs your key"
+        : status.hasPlantNetKey
+          ? "shared key"
+          : "missing key";
     providerStatus.textContent = `ID: ${provider}, ${keyLabel}`;
     providerStatus.classList.toggle("provider-live", canIdentify);
     providerStatus.classList.toggle("provider-demo", !canIdentify);
@@ -1679,7 +1692,7 @@ async function startGardenScanCapture() {
   scanResult.hidden = true;
   detectionBox.hidden = true;
   gardenScanCaptureDialog.hidden = false;
-  renderRecognitionDebug("Garden scan: take 3 photos. gardenin will send the strongest crop only.");
+  renderRecognitionDebug("Garden scan: use the main Scan button for 3 photos. gardenin will send the strongest crop only.");
   updateGardenScanProgress();
   await captureGardenScanPhoto();
 }
@@ -1754,6 +1767,8 @@ function closeGardenScanCapture() {
   gardenScanCaptures = [];
   gardenScanTakeButton.disabled = false;
   updateGardenScanProgress();
+  captureButton.textContent = isFrozenAfterScan ? "Retake" : "Scan";
+  captureButton.disabled = (!stream && !isFrozenAfterScan) || (!camera.videoWidth && !isFrozenAfterScan);
 }
 
 function updateGardenScanProgress() {
@@ -1773,6 +1788,11 @@ function updateGardenScanProgress() {
   const next = Math.min(gardenScanCaptures.length + 1, 3);
   gardenScanTakeButton.textContent = gardenScanCaptures.length >= 3 ? "Identifying" : `Take photo ${next}`;
   gardenScanTakeButton.disabled = gardenScanCaptures.length >= 3;
+  gardenScanTakeButton.hidden = true;
+  if (!gardenScanCaptureDialog.hidden) {
+    captureButton.textContent = gardenScanCaptures.length >= 3 ? "Identifying" : `Scan ${next}/3`;
+    captureButton.disabled = gardenScanCaptures.length >= 3;
+  }
   const bestCapture = bestCaptureFrom(gardenScanCaptures);
   gardenScanQuality.textContent = bestCapture
     ? `Best photo: ${bestCapture.number} of 3, ${Math.round(bestCapture.quality.score * 100)}% quality (${bestCapture.quality.reason}).`
@@ -2232,8 +2252,8 @@ function renderDataSettings() {
   photoUseAllowButton.disabled = photoTrainingConsent === "yes";
   photoUseDisableButton.disabled = photoTrainingConsent === "no";
   plantNetKeyStatus.textContent = hasPlantNetApiKey
-    ? "A personal Pl@ntNet key is saved in this browser. It is sent only during plant ID requests and is not exported."
-    : "No personal key is saved. Free/dev mode can require each user to bring their own Pl@ntNet key.";
+    ? "Your personal Pl@ntNet key is saved in this browser and will be used for plant ID instead of the shared hosted key. It is not exported."
+    : "No personal key is saved. gardenin uses the shared hosted key unless this deployment requires each user to bring their own key.";
   plantNetApiKeyInput.value = "";
   plantNetKeyClearButton.disabled = !hasPlantNetApiKey;
 }
@@ -2293,6 +2313,74 @@ function exportLocalData() {
   link.click();
   window.setTimeout(() => URL.revokeObjectURL(link.href), 1000);
   link.remove();
+}
+
+function importLocalData() {
+  const file = dataImportInput.files?.[0];
+  if (!file) {
+    dataImportStatus.textContent = "Choose a gardenin JSON export first.";
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const payload = JSON.parse(String(reader.result || "{}"));
+      const importedPlants = Array.isArray(payload.plants)
+        ? payload.plants.map(sanitizePlantRecord).filter(Boolean)
+        : [];
+      const importedGallery = Array.isArray(payload.idOnlyGallery)
+        ? payload.idOnlyGallery.map(sanitizeIdOnlyGalleryPhoto).filter(Boolean)
+        : [];
+      const importedEvents = Array.isArray(payload.recognitionEvents)
+        ? payload.recognitionEvents.map(sanitizeRecognitionEvent).filter(Boolean)
+        : [];
+
+      plants = mergeById(plants, importedPlants);
+      idOnlyGallery = mergeById(idOnlyGallery, importedGallery).slice(0, 100);
+      recognitionEvents = mergeById(recognitionEvents, importedEvents).slice(0, 250);
+
+      if ((photoTrainingConsent !== "yes" && photoTrainingConsent !== "no") &&
+        (payload.photoTrainingConsent === "yes" || payload.photoTrainingConsent === "no")) {
+        photoTrainingConsent = payload.photoTrainingConsent;
+        repository.savePhotoTrainingConsent(photoTrainingConsent);
+      }
+
+      if (/^\d{5}$/.test(String(payload.weatherZip || ""))) {
+        repository.saveWeatherZip(payload.weatherZip);
+        weatherZipInput.value = payload.weatherZip;
+      }
+
+      savePlants();
+      saveIdOnlyGallery();
+      saveRecognitionEvents();
+      renderPlants();
+      renderDataSettings();
+      dataImportStatus.textContent = `Imported ${importedPlants.length} plant(s), ${importedGallery.length} ID-only photo(s), and ${importedEvents.length} recognition event(s).`;
+      dataImportInput.value = "";
+    } catch (error) {
+      dataImportStatus.textContent = `Import failed: ${error.message}`;
+    }
+  };
+  reader.onerror = () => {
+    dataImportStatus.textContent = "Import failed: could not read that file.";
+  };
+  reader.readAsText(file);
+}
+
+function mergeById(existing, incoming) {
+  const merged = new Map();
+  for (const item of existing || []) {
+    if (item?.id) {
+      merged.set(item.id, item);
+    }
+  }
+  for (const item of incoming || []) {
+    if (item?.id) {
+      merged.set(item.id, item);
+    }
+  }
+  return [...merged.values()];
 }
 
 function deleteLocalData() {

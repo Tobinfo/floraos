@@ -224,8 +224,9 @@
           <li data-step="garden-photo-3"><span>Photo 3</span><strong>Needed</strong></li>
         </ol>
         <p class="quality-note" id="garden-scan-quality">Best photo: waiting.</p>
+        <p class="quality-note">Use the main Scan button to take the next photo.</p>
         <div class="scan-actions">
-          <button class="primary-button" id="garden-scan-take" type="button">Take photo 1</button>
+          <button class="primary-button" id="garden-scan-take" type="button" hidden>Take photo 1</button>
           <button class="ghost-button" id="garden-scan-cancel" type="button">Cancel</button>
         </div>
       </div>
@@ -355,9 +356,12 @@
           <div>
             <strong>Export or delete</strong>
             <p>Exports include local plant records, crop photos, recognition events, ID-only gallery items, ZIP weather setting, and consent setting. API keys are not exported.</p>
+            <input id="data-import-file" type="file" accept="application/json">
+            <p id="data-import-status">Import an exported gardenin JSON file to pull saved crop photos into this browser.</p>
           </div>
           <div class="photo-actions">
             <button type="button" id="data-export">Export</button>
+            <button type="button" id="data-import">Import</button>
             <button type="button" id="data-delete">Delete local data</button>
           </div>
         </div>
