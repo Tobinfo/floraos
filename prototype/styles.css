@@ -689,7 +689,8 @@ h3 {
   gap: 8px;
 }
 
-.photo-actions button {
+.photo-actions button,
+.photo-actions .action-link {
   min-height: 34px;
   flex: 1;
   padding: 0 10px;
@@ -698,6 +699,14 @@ h3 {
   color: var(--soil);
   font-size: 0.8rem;
   font-weight: 800;
+}
+
+.photo-actions .action-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
 }
 
 .training-progress {

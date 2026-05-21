@@ -207,3 +207,11 @@ Decision: Garden Scan should use one visible capture control for its three photo
 Reason: The scan flow was creating needless UI confusion by starting with `Scan` and then switching to a second `Take photo` button. The progress panel should explain the sequence, but the main action should remain the main `Scan` button.
 
 Implementation note: The hidden garden-scan take button remains in markup only as a non-visible compatibility hook; the user-facing flow is main `Scan`, then `Scan 2/3`, then `Scan 3/3`.
+
+## 2026-05-21: Pl@ntNet Signup Redirect
+
+Decision: gardenin redirects users to the Pl@ntNet developer portal for account creation and API-key generation instead of embedding the Pl@ntNet signup flow.
+
+Reason: Third-party signup and credential flows should remain on the provider's domain. gardenin should guide users to the right page, then accept only the generated API key.
+
+Implementation note: The Data panel includes a `Get free key` link to `https://my.plantnet.org/` next to the personal Pl@ntNet API key field.

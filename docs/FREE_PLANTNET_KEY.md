@@ -4,14 +4,15 @@ Use this path when a free or development gardenin deployment should avoid spendi
 
 ## User Steps
 
-1. Open `https://my.plantnet.org/`.
-2. Create or sign in to a Pl@ntNet developer account.
-3. Generate a private API key from the Pl@ntNet developer dashboard.
-4. Open gardenin.
-5. Open `Data`.
-6. Paste the key under `Pl@ntNet API key`.
-7. Select `Save key`.
-8. Run `Scan` again.
+1. Open gardenin.
+2. Open `Data`.
+3. Select `Get free key` to open the Pl@ntNet developer portal.
+4. Create or sign in to a Pl@ntNet developer account.
+5. Generate a private API key from the Pl@ntNet developer dashboard.
+6. Return to gardenin.
+7. Paste the key under `Pl@ntNet API key`.
+8. Select `Save key`.
+9. Run `Scan` again.
 
 ## Deployment Setting
 
@@ -27,6 +28,8 @@ Leave `PLANTNET_API_KEY` unset if gardenin should not use a shared hosted key at
 ## Product Note
 
 This is reasonable for early testers, hobbyists, and self-directed free users. It is not ideal for polished consumer onboarding because it adds friction before the first successful scan.
+
+The app should redirect users to the Pl@ntNet portal instead of embedding signup or collecting Pl@ntNet credentials. Users create the key on Pl@ntNet's domain, then paste only the API key into gardenin.
 
 Sources:
 

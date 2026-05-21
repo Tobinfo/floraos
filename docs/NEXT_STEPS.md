@@ -64,6 +64,7 @@
 - Local recognition events are now persisted and exported so accepted, rejected, provider-result, and error outcomes can later sync into hosted `recognition_events`.
 - Garden Scan now uses the main `Scan` button for all three photos. The progress panel shows photo status, but there is no second capture button.
 - The Data panel can import a gardenin JSON export so crop photos and recognition events can move into a new browser/profile/prototype while hosted storage is still pending.
+- The Data panel now includes `Get free key`, which redirects users to the Pl@ntNet developer portal so free/dev users can create their own key and paste it back into gardenin.
 - No-subscription water probe direction: support Wi-Fi gateways such as Ecowitt WH51 with GW1100/GW2000, Bluetooth plant sensors such as Mi Flora/Flower Care for pots, and later ESP32 DIY probes for custom beds.
 - If this chat context closes, reopen `C:\dev\plant watering` and ask Codex to read `PROJECT_CONTEXT.md`, `docs/NEXT_STEPS.md`, and `docs/DECISIONS.md`.
 
